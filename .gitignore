@@ -1,0 +1,36 @@
+# Bytecode
+__pycache__/
+*.py[cod]
+
+# Build artefacts
+*.egg-info/
+build/
+dist/
+_build/
+_static/
+_templates/
+
+# Coverage files
+.coverage
+htmlcov/
+
+# Pre-commit cache (optional)
+.pre-commit/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+
+# Temporary / OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+project_structure.txt
+tests/__pycache__/
+evo-net/__pycache__/

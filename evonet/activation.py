@@ -1,19 +1,22 @@
+# SPDX-License-Identifier: MIT
 """
 Activation functions for evolvable neural networks.
 
-Provides scalar functions such as ReLU, Tanh, Sigmoid, as well as
-a softmax implementation and a function registry (ACTIVATIONS).
+Provides scalar functions such as ReLU, Tanh, Sigmoid, as well as a softmax
+implementation and a function registry (ACTIVATIONS).
 
 These functions are stateless and operate on scalars unless otherwise noted.
 """
 
+from typing import Callable, List, Tuple, Union
+
 import numpy as np
-from typing import Union, List, Tuple
 
 Scalar = Union[int, float]
 
 
 # Common Activation Functions
+
 
 def tanh(x: Scalar) -> float:
     """Hyperbolic tangent activation: [-inf, inf] --> [-1, 1]."""
@@ -64,10 +67,11 @@ def gaussian(x: Scalar) -> float:
     x = float(x)
     if np.abs(x) > 38:
         return 0.0
-    return np.exp(-x**2)
+    return np.exp(-(x**2))
 
 
 # --- Threshold Functions ---
+
 
 def binary(x: Scalar) -> float:
     """Step function: 1 if x > 0 else 0."""
@@ -80,6 +84,7 @@ def signum(x: Scalar) -> float:
 
 
 # --- Linear Variants ---
+
 
 def linear(x: Scalar) -> float:
     """Linear identity: returns x."""
@@ -100,23 +105,29 @@ def null(_: Scalar = 0) -> float:
     """Always returns 0.0."""
     return 0.0
 
+
 # Modern Functions
+
 
 def swish(x: Scalar) -> float:
     """Swish activation: x * sigmoid(x). Smooth and non-monotonic."""
     return float(x) * sigmoid(x)
 
+
 def mish(x: Scalar) -> float:
     """Mish activation: x * tanh(softplus(x))."""
     return float(x) * np.tanh(np.log1p(np.exp(x)))
+
 
 def softplus(x: Scalar) -> float:
     """Smooth ReLU approximation: log(1 + exp(x))."""
     return np.log1p(np.exp(float(x)))
 
+
 def softsign(x: Scalar) -> float:
     """Smooth alternative to tanh: x / (1 + |x|)."""
     return float(x) / (1 + abs(float(x)))
+
 
 def hard_sigmoid(x: Scalar) -> float:
     """Piecewise linear approximation of sigmoid."""
@@ -124,6 +135,7 @@ def hard_sigmoid(x: Scalar) -> float:
 
 
 # Special Functions
+
 
 def softmax(values: Union[List[float], Tuple[float], np.ndarray]) -> np.ndarray:
     """
@@ -144,12 +156,13 @@ def softmax(values: Union[List[float], Tuple[float], np.ndarray]) -> np.ndarray:
 
 # --- Registry ---
 
+
 def random_function() -> str:
     """Returns a random activation function name from the registry."""
     return np.random.choice(list(ACTIVATIONS.keys()))
 
 
-ACTIVATIONS: dict[str, callable] = {
+ACTIVATIONS: dict[str, Callable] = {
     "tanh": tanh,
     "ntanh": ntanh,
     "sigmoid": sigmoid,
@@ -169,5 +182,5 @@ ACTIVATIONS: dict[str, callable] = {
     "mish": mish,
     "softplus": softplus,
     "softsign": softsign,
-    "hard_sigmoid": hard_sigmoid
+    "hard_sigmoid": hard_sigmoid,
 }
