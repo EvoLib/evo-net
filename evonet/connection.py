@@ -6,11 +6,9 @@ A connection links a source neuron to a target neuron with a weight. Supports op
 connection types for future use (e.g. inhibitory).
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
-from evonet.types import ConnectionType
+from evonet.enums import ConnectionType
 
 if TYPE_CHECKING:
     from evonet.neuron import Neuron
@@ -30,12 +28,13 @@ class Connection:
 
     def __init__(
         self,
-        source: Neuron,
-        target: Neuron,
+        source: "Neuron",
+        target: "Neuron",
         weight: float = 1.0,
         delay: int = 0,
         conn_type: ConnectionType = ConnectionType.STANDARD,
     ) -> None:
+
         self.source = source
         self.target = target
         self.weight = weight

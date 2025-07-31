@@ -14,3 +14,4 @@ class ConnectionType(Enum):
     INHIBITORY = auto()
     EXCITATORY = auto()
     MODULATORY = auto()
+    RECURRENT = auto()

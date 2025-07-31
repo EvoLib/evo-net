@@ -154,13 +154,12 @@ def softmax(values: Union[List[float], Tuple[float], np.ndarray]) -> np.ndarray:
     return exp_x / np.sum(exp_x)
 
 
-# --- Registry ---
-
-
-def random_function() -> str:
+def random_function_name() -> str:
     """Returns a random activation function name from the registry."""
     return np.random.choice(list(ACTIVATIONS.keys()))
 
+
+# Registry
 
 ACTIVATIONS: dict[str, Callable] = {
     "tanh": tanh,

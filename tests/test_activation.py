@@ -23,8 +23,8 @@ def test_softmax_sum_to_one() -> None:
     np.testing.assert_almost_equal(np.sum(output), 1.0, decimal=6)
 
 
-def test_random_function_exists_in_registry() -> None:
-    """random_function must return a valid name in the registry."""
+def test_random_function_name_exists_in_registry() -> None:
+    """random_function_name must return a valid name in the registry."""
     for _ in range(10):
-        name = activation.random_function()
+        name = activation.random_function_name()
         assert name in activation.ACTIVATIONS

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "evonet"
 version = "0.1.0adev1"
-description = "A lightweight, evolvable neural network core."
+description = "Evolvable neural network core for integration with EvoLib"
 authors = [
     { name = "EvoLib", email = "evolib@dismail.de" }
 ]
@@ -38,7 +38,7 @@ docs = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["evo-net*"]
+include = ["evonet*"]
 
 [tool.setuptools.package-data]
 "evolib" = ["py.typed"]
