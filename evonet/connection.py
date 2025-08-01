@@ -48,7 +48,7 @@ class Connection:
     def __repr__(self) -> str:
         type_str = self.type.name.lower()
         return (
-            f"<Conn {self.source.id[:4]} "
-            f"-> {self.target.id[:4]} "
+            f"<Conn {self.source.id[:6]} "
+            f"-> {self.target.id[:6]} "
             f"w={self.weight:.2f} type={type_str}>"
         )

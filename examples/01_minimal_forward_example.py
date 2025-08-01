@@ -7,9 +7,9 @@ def main() -> None:
     net.add_layer()  # Layer 0: Input
     net.add_layer()  # Layer 1: Output
 
-    net.add_neuron(layer_idx=0, role=NeuronRole.INPUT, activation="linear", lable="in")
+    net.add_neuron(layer_idx=0, role=NeuronRole.INPUT, activation="linear", label="in")
     net.add_neuron(
-        layer_idx=1, role=NeuronRole.OUTPUT, activation="linear", bias=0.5, lable="out"
+        layer_idx=1, role=NeuronRole.OUTPUT, activation="linear", bias=0.5, label="out"
     )
 
     result = net.calc([1.0])

@@ -51,7 +51,7 @@ class Nnet:
         layer_idx: int | None = None,
         activation: str = "tanh",
         bias: float = 0.0,
-        lable: str = "",
+        label: str = "",
         role: NeuronRole = NeuronRole.HIDDEN,
         count: int = 1,
         connect_layer: bool = True,
@@ -63,12 +63,12 @@ class Nnet:
         if layer_idx < 0:
             raise ValueError(f"Expected positiv layerindex: got {layer_idx}")
         if layer_idx >= len(self.layers):
-            raise ValueError("Layerindex out off scope: got {layer_idx}")
+            raise ValueError(f"Layer index out of bounds: {layer_idx}")
 
         for _ in range(count):
             neuron = Neuron(activation=activation, bias=bias)
             neuron.role = role
-            neuron.lable = lable
+            neuron.label = label
 
             self.layers[layer_idx].neurons.append(neuron)
 

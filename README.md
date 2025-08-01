@@ -8,7 +8,7 @@ It supports dynamic topologies, recurrent connections, per-neuron activation, an
 
 ---
 
-## 🔧 Features
+## Features
 
 - **Layer-based but flexible** – allows skip connections, cycles, and recurrent paths
 - **Typed neuron roles and connection types** (`NeuronRole`, `ConnectionType`)
@@ -26,7 +26,7 @@ It supports dynamic topologies, recurrent connections, per-neuron activation, an
 
 ---
 
-## 🚀 Quick Example
+## Quick Example
 
 ```python
 from evonet.core import Nnet
@@ -41,7 +41,7 @@ net.add_neuron(layer_idx=1, activation="linear", bias=0.5, lable="out", connect_
 print(net.calc([1.0]))
 ```
 
-## 🪪 License
+## License
 
-This project is licensed under the [MIT License](https://github.com/EvoLib/evo-net/tree/main/LICENSE).
+MIT License - see [MIT License](https://github.com/EvoLib/evo-net/tree/main/LICENSE).
 

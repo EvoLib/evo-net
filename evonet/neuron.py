@@ -25,11 +25,11 @@ class Neuron:
         incoming (list): Incoming connections (to be filled externally).
         outgoing (list): Outgoing connections (to be filled externally).
         output (float): Cached result after activation.
-        lable (str): An optional lable
+        label (str): An optional label
     """
 
     def __init__(
-        self, activation: str = "tanh", lable: str = "", bias: float = 0.0
+        self, activation: str = "tanh", label: str = "", bias: float = 0.0
     ) -> None:
 
         if activation not in ACTIVATIONS:
@@ -44,7 +44,7 @@ class Neuron:
         self.input: float = 0.0
         self.output: float = 0.0
         self.last_output: float = 0.0
-        self.lable = lable
+        self.label = label
 
     def reset(self) -> None:
         self.last_output = self.output
