@@ -8,6 +8,7 @@ export interfaces.
 
 from __future__ import annotations
 
+import graphviz
 import numpy as np
 
 from evonet.connection import Connection
@@ -152,3 +153,85 @@ class Nnet:
             f"O:{output_neurons}), "
             f"{total_connections} connections "
         )
+
+    def print_graph(
+        self,
+        name: str,
+        engine: str = "dot",
+        labels_on: bool = True,
+        colors_on: bool = True,
+        thickness_on: bool = False,
+        fillcolors_on: bool = False,
+    ) -> None:
+        """Draws the neural network using Graphviz with free positioning."""
+
+        if not self.layers:
+            print("No layers to visualize.")
+            return
+
+        dot = graphviz.Digraph(name=name, format="png", engine=engine)
+        dot.graph_attr.update(
+            bgcolor="white",
+            rankdir="LR",
+            overlap="prism",
+            sep="15",
+            ratio="fill",
+            splines="spline",
+            size="6.68,5!",
+            dpi="300",
+        )
+        dot.node_attr.update(
+            shape="circle", style="filled", fixedsize="shape", width="1.8"
+        )
+        dot.edge_attr.update(arrowsize="0.8")
+
+        # Add neurons with coordinates (x = layer, y = index)
+        for layer_idx, layer in enumerate(self.layers):
+            for neuron_idx, neuron in enumerate(layer.neurons):
+                if neuron.role.name == "INPUT":
+                    fillcolor = "lightblue" if fillcolors_on else "white"
+                elif neuron.role.name == "OUTPUT":
+                    fillcolor = "orange" if fillcolors_on else "white"
+                else:
+                    fillcolor = "lightgreen" if fillcolors_on else "white"
+
+                label = (
+                    f"{neuron.label or neuron.role.name}({layer_idx})\n"
+                    f"In: {neuron.input:.3f}\n"
+                    f"Out: {neuron.output:.3f}\n"
+                    f"LastOut: {neuron.last_output:.3f}\n"
+                    f"Bias: {neuron.bias:.3f}\n"
+                    f"{neuron.activation_name}"
+                )
+
+                pos = f"{layer_idx},{-neuron_idx}!"
+                dot.node(
+                    name=neuron.id,
+                    label=label,
+                    fillcolor=fillcolor,
+                    pos=pos,
+                )
+
+        # Add edges
+        for conn in self.get_all_connections():
+            label = f"{conn.weight:.2f}" if labels_on else ""
+            color = (
+                "green"
+                if colors_on and conn.weight >= 0
+                else "red" if colors_on else "black"
+            )
+            penwidth = (
+                str(max(1, min(5, abs(conn.weight * 5)))) if thickness_on else "1"
+            )
+            style = "dashed" if conn.type.name == "RECURRENT" else "solid"
+
+            dot.edge(
+                conn.source.id,
+                conn.target.id,
+                label=label,
+                color=color,
+                penwidth=penwidth,
+                style=style,
+            )
+
+        dot.render(name, cleanup=True)
