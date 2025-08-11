@@ -178,7 +178,7 @@ class Nnet:
             ratio="fill",
             splines="spline",
             size="6.68,5!",
-            dpi="300",
+            dpi="200",
         )
         dot.node_attr.update(
             shape="circle", style="filled", fixedsize="shape", width="1.8"
@@ -235,3 +235,127 @@ class Nnet:
             )
 
         dot.render(name, cleanup=True)
+
+    def get_weights(self) -> np.ndarray:
+        """
+        Return all connection weights as a flat vector in a deterministic order.
+
+        Order:
+            (source_layer, source_index, target_layer, target_index, connection_type)
+        This stable ordering guarantees round-trip consistency with `set_weights()`.
+        """
+        conns = self.get_all_connections()
+        if not conns:
+            return np.empty(0, dtype=float)
+
+        # Local helpers to locate a neuron's indices
+        def layer_index(n: Neuron) -> int:
+            for li, layer in enumerate(self.layers):
+                if n in layer.neurons:
+                    return li
+            raise ValueError("Neuron is not registered in any layer.")
+
+        def neuron_index_in_layer(n: Neuron) -> int:
+            li = layer_index(n)
+            return self.layers[li].neurons.index(n)
+
+        conns_sorted = sorted(
+            conns,
+            key=lambda c: (
+                layer_index(c.source),
+                neuron_index_in_layer(c.source),
+                layer_index(c.target),
+                neuron_index_in_layer(c.target),
+                int(c.type.value),
+            ),
+        )
+        return np.array([c.weight for c in conns_sorted], dtype=float)
+
+    def set_weights(self, flat: np.ndarray) -> None:
+        """
+        Set all connection weights from a flat vector using the same deterministic order
+        as `get_weights()`.
+
+        Args:
+            flat: 1D array-like of weights. Length must match the number of connections.
+
+        Raises:
+            ValueError: If the length does not match the number of connections.
+        """
+        flat = np.asarray(flat, dtype=float).ravel()
+
+        def layer_index(n: Neuron) -> int:
+            for li, layer in enumerate(self.layers):
+                if n in layer.neurons:
+                    return li
+            raise ValueError("Neuron is not registered in any layer.")
+
+        def neuron_index_in_layer(n: Neuron) -> int:
+            li = layer_index(n)
+            return self.layers[li].neurons.index(n)
+
+        conns = self.get_all_connections()
+        conns_sorted = sorted(
+            conns,
+            key=lambda c: (
+                layer_index(c.source),
+                neuron_index_in_layer(c.source),
+                layer_index(c.target),
+                neuron_index_in_layer(c.target),
+                int(c.type.value),
+            ),
+        )
+
+        if flat.size != len(conns_sorted):
+            raise ValueError(
+                f"Length mismatch for weights: "
+                f"expected {len(conns_sorted)}, got {flat.size}."
+            )
+
+        for w, c in zip(flat, conns_sorted):
+            c.weight = float(w)
+
+    def get_biases(self) -> np.ndarray:
+        """
+        Return all neuron biases (excluding input neurons) as a flat vector.
+
+        Order:
+            (layer_index, neuron_index) over all non-input neurons.
+        """
+        if not self.layers:
+            return np.empty(0, dtype=float)
+
+        biases: list[float] = []
+        for _, layer in enumerate(self.layers):
+            for _, neuron in enumerate(layer.neurons):
+                if neuron.role is not NeuronRole.INPUT:
+                    biases.append(neuron.bias)
+        return np.asarray(biases, dtype=float)
+
+    def set_biases(self, flat: np.ndarray) -> None:
+        """
+        Set all neuron biases (excluding input neurons) from a flat vector using the
+        same ordering as `get_biases()`.
+
+        Args:
+            flat: 1D array-like of biases for all non-input neurons.
+
+        Raises:
+            ValueError: If the length does not match the number of targeted neurons.
+        """
+        flat = np.asarray(flat, dtype=float).ravel()
+
+        # Collect non-input neurons in deterministic order
+        targets: list[Neuron] = []
+        for _, layer in enumerate(self.layers):
+            for _, neuron in enumerate(layer.neurons):
+                if neuron.role is not NeuronRole.INPUT:
+                    targets.append(neuron)
+
+        if flat.size != len(targets):
+            raise ValueError(
+                f"Length mismatch for biases: expected {len(targets)}, got {flat.size}."
+            )
+
+        for b, n in zip(flat, targets):
+            n.bias = float(b)
