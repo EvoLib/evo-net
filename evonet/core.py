@@ -129,32 +129,34 @@ class Nnet:
                 neuron.reset()
 
     def calc(self, input_values: list[float]) -> list[float]:
-
         self.reset()
 
-        # Set Inputs
+        # Set inputs
         input_layer = self.layers[0]
         assert len(input_layer.neurons) == len(input_values)
-        for idx, neuron in enumerate(input_layer.neurons):
-            neuron.input = float(input_values[idx])
+        for i, n in enumerate(input_layer.neurons):
+            n.input = float(input_values[i])
 
-        # Recurrent
+        # Preload recurrent contributions from previous time step (last_output)
         for layer in self.layers:
-            for neuron in layer.neurons:
-                for conn in neuron.incoming:
-                    if conn.type.name.lower() == "recurrent":
-                        neuron.input += conn.source.last_output * conn.weight
-                    else:
-                        neuron.input += conn.source.output * conn.weight
+            for n in layer.neurons:
+                for c in n.incoming:
+                    if c.type is ConnectionType.RECURRENT:
+                        c.target.input += c.weight * c.source.last_output
 
+        # Feed-forward by layers: activate first, then propagate non-recurrent edges
         for layer in self.layers:
-            for neuron in layer.neurons:
-                total = neuron.input + neuron.bias
-                neuron.output = neuron.activation(total)
-                for conn in neuron.outgoing:
-                    conn.target.input += conn.weight * neuron.output
+            # Activate all neurons in this layer
+            for n in layer.neurons:
+                total = n.input + n.bias
+                n.output = n.activation(total)
 
-        # Return Output
+            # Propagate to targets (exclude recurrent edges)
+            for n in layer.neurons:
+                for c in n.outgoing:
+                    if c.type is not ConnectionType.RECURRENT:
+                        c.target.input += c.weight * n.output
+
         return [n.output for n in self.layers[-1].neurons]
 
     def get_all_neurons(self) -> list[Neuron]:
