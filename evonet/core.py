@@ -31,6 +31,30 @@ class Nnet:
     def __init__(self) -> None:
         self.layers: list[Layer] = []
 
+    @property
+    def num_weights(self) -> int:
+        """Number of connections in the network (no allocation)."""
+        return len(self.get_all_connections())
+
+    @property
+    def num_biases(self) -> int:
+        """
+        Return the number of trainable biases (excludes input neurons).
+
+        Inputs are feature holders and have no trainable bias in this design.
+        """
+        count = 0
+        for layer in self.layers:
+            for neuron in layer.neurons:
+                if neuron.role is not NeuronRole.INPUT:
+                    count += 1
+        return count
+
+    @property
+    def num_params(self) -> int:
+        """Total parameter count = weights + biases."""
+        return self.num_weights + self.num_biases
+
     def add_layer(self, count: int = 1) -> int:
         """
         Add a layer to the network.
