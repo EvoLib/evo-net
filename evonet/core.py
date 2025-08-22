@@ -120,6 +120,15 @@ class Nnet:
                         for prev_neuron in prev_layer.neurons:
                             self.add_connection(prev_neuron, neuron)
                         break
+
+            # connect to next non-empty layer
+            if connect_layer and role == NeuronRole.HIDDEN:
+                for next_idx in range(layer_idx + 1, len(self.layers)):
+                    next_layer = self.layers[next_idx]
+                    if next_layer.neurons:
+                        for next_neuron in next_layer.neurons:
+                            self.add_connection(neuron, next_neuron)
+                        break
         return neuron
 
     def add_connection(
