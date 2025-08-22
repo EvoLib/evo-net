@@ -8,6 +8,7 @@ implementation and a function registry (ACTIVATIONS).
 These functions are stateless and operate on scalars unless otherwise noted.
 """
 
+import random
 from typing import Callable, List, Tuple, Union
 
 import numpy as np
@@ -70,7 +71,7 @@ def gaussian(x: Scalar) -> float:
     return np.exp(-(x**2))
 
 
-# --- Threshold Functions ---
+# Threshold Functions
 
 
 def binary(x: Scalar) -> float:
@@ -83,7 +84,7 @@ def signum(x: Scalar) -> float:
     return 1.0 if x > 0 else -1.0 if x < 0 else 0.0
 
 
-# --- Linear Variants ---
+# Linear Variants
 
 
 def linear(x: Scalar) -> float:
@@ -154,9 +155,29 @@ def softmax(values: Union[List[float], Tuple[float], np.ndarray]) -> np.ndarray:
     return exp_x / np.sum(exp_x)
 
 
-def random_function_name() -> str:
-    """Returns a random activation function name from the registry."""
-    return np.random.choice(list(ACTIVATIONS.keys()))
+def random_function_name(activations: list[str] | None = None) -> str:
+    """
+    Return a random activation function name from the registry.
+
+    Args:
+        activations (list[str] | None): Optional subset of allowed function names.
+            If None, all registered activation names are considered.
+
+    Raises:
+        ValueError: If any name is not in the activation registry.
+
+    Returns:
+        str: Randomly selected activation function name.
+    """
+
+    if activations is None:
+        activations = list(ACTIVATIONS.keys())
+
+    invalid = set(activations) - set(ACTIVATIONS.keys())
+    if invalid:
+        raise ValueError(f"Invalid activation functions: {invalid}")
+
+    return random.choice(activations)
 
 
 # Registry
