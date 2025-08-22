@@ -71,6 +71,21 @@ class Nnet:
 
         return len(self.layers) - 1
 
+    def insert_layer(self, index: int) -> None:
+        """
+        Inserts a new empty layer at the given index.
+
+        Args:
+            index (int): Position where the new layer is inserted.
+                         0 = before input, 1 = after input, etc.
+
+        Raises:
+            ValueError: If index is out of bounds.
+        """
+        if not (0 <= index <= len(self.layers)):
+            raise ValueError(f"insert_layer: index {index} out of bounds.")
+        self.layers.insert(index, Layer())
+
     def add_neuron(
         self,
         layer_idx: int | None = None,

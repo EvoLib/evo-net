@@ -68,19 +68,29 @@ def add_random_connection(net: Nnet) -> None:
     if len(all_neurons) < 2:
         return
 
-    src = random.choice(all_neurons)
-    dst = random.choice(all_neurons)
+    tries = 10  # retry limit to avoid infinite loops
+    for _ in range(tries):
+        src = random.choice(all_neurons)
+        dst = random.choice(all_neurons)
 
-    if src == dst:
-        conn_type = ConnectionType.RECURRENT
-    else:
-        conn_type = ConnectionType.STANDARD
+        # No recorrent connection on INPUT
+        if src == dst and src.role == NeuronRole.INPUT:
+            continue
 
-    # Prüfen, ob Verbindung bereits existiert
-    if any(conn.target == dst for conn in src.outgoing):
+        # No recurrent connections to INPUT
+        if dst.role == NeuronRole.INPUT:
+            continue
+
+        if any(conn.target == dst for conn in src.outgoing):
+            continue
+
+        if src == dst:
+            conn_type = ConnectionType.RECURRENT
+        else:
+            conn_type = ConnectionType.STANDARD
+
+        net.add_connection(src, dst, conn_type=conn_type)
         return
-
-    net.add_connection(src, dst, conn_type=conn_type)
 
 
 def remove_random_connection(net: Nnet) -> None:
@@ -100,12 +110,16 @@ def add_random_neuron(net: Nnet) -> None:
     if len(net.layers) < 2:
         return
 
+    if len(net.layers) == 2:
+        net.insert_layer(1)
+
     # Ziel-Layer wählen (nicht Input, nicht Output)
     candidate_layers = net.layers[1:-1]
     if not candidate_layers:
         return
 
     layer = random.choice(candidate_layers)
+
     net.add_neuron(
         layer_idx=net.layers.index(layer),
         activation="tanh",
