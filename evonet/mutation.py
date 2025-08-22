@@ -16,15 +16,26 @@ from evonet.enums import ConnectionType, NeuronRole
 from evonet.neuron import Neuron
 
 
-def mutate_activation(neuron: Neuron, std: float = 0.1) -> None:
-    neuron.activation_name = random_function_name()
+def mutate_activation(neuron: Neuron, activations: list[str] | None = None) -> None:
+    """Assign a new random activation to a single neuron."""
+    neuron.activation_name = random_function_name(activations)
     neuron.activation = ACTIVATIONS[neuron.activation_name]
 
 
-def mutate_activations(net: Nnet, probability: float = 1.0, std: float = 0.1) -> None:
+def mutate_activations(
+    net: Nnet, probability: float = 1.0, activations: list[str] | None = None
+) -> None:
+    """
+    Randomly mutate activations of non-input neurons in a network.
+
+    Args:
+        net (Nnet): The network whose neurons will be mutated.
+        probability (float): Per-neuron mutation probability.
+        activations (list[str] | None): Allowed activation names; if None, all.
+    """
     for neuron in net.get_all_neurons():
         if neuron.role != NeuronRole.INPUT and np.random.rand() < probability:
-            mutate_activation(neuron)
+            mutate_activation(neuron, activations)
 
 
 def mutate_weight(conn: Connection, std: float = 0.1) -> None:
