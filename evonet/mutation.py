@@ -128,6 +128,31 @@ def add_random_neuron(net: Nnet) -> None:
     )
 
 
+def remove_random_neuron(net: Nnet) -> None:
+    """
+    Entfernt zufällig ein Hidden-Neuron (keine Input/Output).
+
+    Alle zugehörigen Verbindungen werden mit entfernt.
+    """
+    hidden_neurons = [n for n in net.get_all_neurons() if n.role == NeuronRole.HIDDEN]
+    if not hidden_neurons:
+        return
+
+    neuron = random.choice(hidden_neurons)
+
+    # Remove connections
+    for conn in list(neuron.incoming):
+        conn.source.outgoing.remove(conn)
+    for conn in list(neuron.outgoing):
+        conn.target.incoming.remove(conn)
+
+    # Remove from layer
+    for layer in net.layers:
+        if neuron in layer.neurons:
+            layer.neurons.remove(neuron)
+            break
+
+
 def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) -> None:
     """Add Neuron between connection."""
     all_connections = net.get_all_connections()
