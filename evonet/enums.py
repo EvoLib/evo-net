@@ -42,3 +42,9 @@ class ConnectionType(Enum):
     EXCITATORY = auto()
     MODULATORY = auto()
     RECURRENT = auto()
+
+
+class RecurrentKind(str, Enum):
+    DIRECT = "direct"  # src == dst
+    LATERAL = "lateral"  # same layer, src != dst
+    INDIRECT = "indirect"  # src_layer > dst_layer (back edge)

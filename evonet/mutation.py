@@ -9,13 +9,15 @@ Includes:
 """
 
 import random
+from collections.abc import Collection
+from typing import Optional
 
 import numpy as np
 
 from evonet.activation import ACTIVATIONS, random_function_name
 from evonet.connection import Connection
 from evonet.core import Nnet
-from evonet.enums import ConnectionType, NeuronRole
+from evonet.enums import ConnectionType, NeuronRole, RecurrentKind
 from evonet.neuron import Neuron
 
 
@@ -86,7 +88,10 @@ def mutate_biases(net: Nnet, probability: float = 1.0, std: float = 0.1) -> None
             mutate_bias(neuron, std)
 
 
-def add_random_connection(net: Nnet) -> None:
+def add_random_connection(
+    net: Nnet,
+    allowed_recurrent: Optional[Collection[RecurrentKind | str]] = None,
+) -> None:
     """
     Add a valid connection between two randomly chosen neurons.
 
@@ -96,7 +101,17 @@ def add_random_connection(net: Nnet) -> None:
     - classify connection type by layer order:
       * src_layer < dst_layer  -> STANDARD
       * src_layer >= dst_layer -> RECURRENT
+
+    Recurrent edges are filtered by allowed_recurrent
+    (list of 'direct' | 'lateral' | 'indirect').
     """
+
+    # normalize to set[RecurrentKind]
+    kinds: set[RecurrentKind] = set()
+    if allowed_recurrent:
+        for k in allowed_recurrent:
+            kinds.add(RecurrentKind(k) if isinstance(k, str) else k)
+
     all_neurons = net.get_all_neurons()
     if len(all_neurons) < 2:
         return
@@ -112,6 +127,16 @@ def add_random_connection(net: Nnet) -> None:
         for neuron in layer.neurons:
             layer_of[neuron] = layer_idx
 
+    def classify(src: Neuron, dst: Neuron) -> tuple[bool, RecurrentKind | None]:
+        src_layer_idx, dst_layer_idx = layer_of[src], layer_of[dst]
+        if src is dst:
+            return True, RecurrentKind.DIRECT
+        if src_layer_idx == dst_layer_idx:
+            return True, RecurrentKind.LATERAL
+        if src_layer_idx > dst_layer_idx:
+            return True, RecurrentKind.INDIRECT
+        return False, None  # forward
+
     candidates: list[tuple[Neuron, Neuron]] = []
     for src in all_neurons:
         for dst in all_neurons:
@@ -119,7 +144,12 @@ def add_random_connection(net: Nnet) -> None:
                 continue
             if (src, dst) in existing:
                 continue
-            candidates.append((src, dst))
+
+            is_recurrent, kind = classify(src, dst)
+            if not is_recurrent:
+                candidates.append((src, dst))  # forward always allowed
+            elif kind in kinds:
+                candidates.append((src, dst))  # recurrent allowed by policy
 
     if not candidates:
         return
