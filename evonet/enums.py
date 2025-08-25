@@ -17,7 +17,6 @@ class NeuronRole(Enum):
     - INPUT: Receives external input (no bias, no activation)
     - HIDDEN: Internal processing neuron
     - OUTPUT: Final layer neuron providing network output
-    - BIAS: Always-on neuron (typically outputs constant 1.0)
     - BIAS: Internal-only constant additive bias.
     """
 
