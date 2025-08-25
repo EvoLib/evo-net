@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: MIT
 """
-Connection between neurons in evolvable neural network.
+Connection between neurons in an evolvable neural network.
 
-A connection links a source neuron to a target neuron with a weight. Supports optional
-connection types for future use (e.g. inhibitory).
+A connection links a source neuron to a target neuron and transmits a weighted signal.
+Supports optional connection types for specialized behaviors (e.g. inhibitory,
+recurrent).
 """
+
 
 from typing import TYPE_CHECKING
 
@@ -21,9 +23,10 @@ class Connection:
     Attributes:
         source (Neuron): The source neuron (presynaptic).
         target (Neuron): The target neuron (postsynaptic).
-        weight (float): Multiplicative weight of the signal.
-        delay (int): Optional delay in steps (not yet used).
-        type (ConnectionType): Type of the connection (e.g. excitatory).
+        weight (float): Multiplicative weight of the transmitted signal.
+        delay (int): Optional delay in time steps (not yet implemented).
+        type (ConnectionType): Type of connection (e.g. standard, recurrent,
+                               inhibitory).
     """
 
     def __init__(
@@ -42,10 +45,23 @@ class Connection:
         self.type: ConnectionType = conn_type
 
     def get_signal(self) -> float:
-        """Computes the weighted signal from the source neuron."""
+        """
+        Return the weighted signal from the source neuron.
+
+        Returns:
+            float: source.output × weight
+        """
+
         return self.source.output * self.weight
 
     def __repr__(self) -> str:
+        """
+        Return a concise string representation of the connection.
+
+        Example:
+            <Conn abc123 -> def456 w=0.85 type=standard>
+        """
+
         type_str = self.type.name.lower()
         return (
             f"<Conn {self.source.id[:6]} "

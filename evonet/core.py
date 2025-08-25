@@ -2,7 +2,8 @@
 """
 Core class for evolvable neural networks.
 
-Manages neurons, connections, and forward computation. Prepares mutation, crossover, and
+Manages neurons, layers, and connections with explicit topology. Supports forward passes
+with optional recurrent connections across time steps, mutation/crossover hooks, and
 export interfaces.
 """
 
@@ -19,13 +20,10 @@ from evonet.neuron import Neuron
 
 class Nnet:
     """
-    Evolvable neural network with explicit topology.
+    Evolvable neural network with explicit layered topology.
 
     Attributes:
-        connections (list[Connection]): All directed, weighted edges.
-        input_neurons (list[Neuron]): Subset of neurons used as input nodes.
-        hidden_neurons (list[Neuron]): Subset of neurons used as hidden nodes.
-        output_neurons (list[Neuron]): Subset of neurons used as output nodes.
+        layers (list[Layer]): Ordered list of network layers.
     """
 
     def __init__(self) -> None:
@@ -57,10 +55,16 @@ class Nnet:
 
     def add_layer(self, count: int = 1) -> int:
         """
-        Add a layer to the network.
+        Append one or more empty layers to the network.
 
-        Parameter:
-            count (int): Number of layers to add
+        Args:
+            count (int): Number of layers to add (must be > 0).
+
+        Returns:
+            int: Index of the last added layer.
+
+        Raises:
+            ValueError: If count is not positive.
         """
 
         if count <= 0:
@@ -73,15 +77,15 @@ class Nnet:
 
     def insert_layer(self, index: int) -> None:
         """
-        Inserts a new empty layer at the given index.
+        Insert an empty layer at a given index.
 
         Args:
-            index (int): Position where the new layer is inserted.
-                         0 = before input, 1 = after input, etc.
+            index (int): Position to insert the new layer (0 = before input).
 
         Raises:
             ValueError: If index is out of bounds.
         """
+
         if not (0 <= index <= len(self.layers)):
             raise ValueError(f"insert_layer: index {index} out of bounds.")
         self.layers.insert(index, Layer())
@@ -96,6 +100,24 @@ class Nnet:
         count: int = 1,
         connect_layer: bool = True,
     ) -> Neuron:
+        """
+        Add one or more neurons to a specified layer.
+
+        Args:
+            layer_idx (int | None): Index of the target layer. If None, uses last layer.
+            activation (str): Activation function name.
+            bias (float): Initial bias value.
+            label (str): Optional label for visualization/debugging.
+            role (NeuronRole): Role of the neuron (INPUT, HIDDEN, OUTPUT).
+            count (int): Number of neurons to add.
+            connect_layer (bool): Whether to auto-connect to adjacent layers.
+
+        Returns:
+            Neuron: Reference to the last added neuron.
+
+        Raises:
+            ValueError: If layer index is invalid.
+        """
 
         if layer_idx is None:
             layer_idx = len(self.layers) - 1  # Add neuron to last layer
@@ -138,6 +160,15 @@ class Nnet:
         weight: float | None = None,
         conn_type: ConnectionType = ConnectionType.STANDARD,
     ) -> None:
+        """
+        Create a directed connection between two neurons.
+
+        Args:
+            source (Neuron): Source neuron.
+            target (Neuron): Target neuron.
+            weight (float | None): Initial weight. If None, random value is used.
+            conn_type (ConnectionType): Type of connection (e.g. standard, recurrent).
+        """
 
         if weight is None:
             weight = np.random.randn() * 0.5
@@ -147,12 +178,25 @@ class Nnet:
         target.incoming.append(conn)
 
     def reset(self) -> None:
-        """Resets all neurons."""
+        """Reset all neurons (clears input, output, and caches)."""
         for layer in self.layers:
             for neuron in layer.neurons:
                 neuron.reset()
 
     def calc(self, input_values: list[float]) -> list[float]:
+        """
+        Perform a forward pass through the network.
+
+        Args:
+            input_values (list[float]): Input vector (must match input layer size).
+
+        Returns:
+            list[float]: Output values from the last layer.
+
+        Raises:
+            AssertionError: If input size does not match input layer.
+        """
+
         self.reset()
 
         # Set inputs
@@ -184,9 +228,11 @@ class Nnet:
         return [n.output for n in self.layers[-1].neurons]
 
     def get_all_neurons(self) -> list[Neuron]:
+        """Return all neurons in all layers (flattened)."""
         return [n for layer in self.layers for n in layer.neurons]
 
     def get_all_connections(self) -> list[Connection]:
+        """Return all outgoing connections in the network."""
         return [c for n in self.get_all_neurons() for c in n.outgoing]
 
     def __repr__(self) -> str:
@@ -213,7 +259,17 @@ class Nnet:
         thickness_on: bool = False,
         fillcolors_on: bool = False,
     ) -> None:
-        """Draws the neural network using Graphviz with free positioning."""
+        """
+        Render a visual representation of the network using Graphviz.
+
+        Args:
+            name (str): Output file name (without extension).
+            engine (str): Graphviz layout engine (e.g., 'dot', 'neato').
+            labels_on (bool): Whether to show edge weights as labels.
+            colors_on (bool): Whether to color edges by sign.
+            thickness_on (bool): Whether to scale edge thickness by weight.
+            fillcolors_on (bool): Whether to color neurons by role.
+        """
 
         if not self.layers:
             print("No layers to visualize.")
@@ -290,9 +346,11 @@ class Nnet:
         """
         Return all connection weights as a flat vector in a deterministic order.
 
+        Returns:
+            np.ndarray: 1D array of connection weights.
+
         Order:
             (source_layer, source_index, target_layer, target_index, connection_type)
-        This stable ordering guarantees round-trip consistency with `set_weights()`.
         """
         conns = self.get_all_connections()
         if not conns:
@@ -327,10 +385,10 @@ class Nnet:
         as `get_weights()`.
 
         Args:
-            flat: 1D array-like of weights. Length must match the number of connections.
+            flat (np.ndarray): Flat array of weights (must match number of connections).
 
         Raises:
-            ValueError: If the length does not match the number of connections.
+            ValueError: If the length of the array does not match.
         """
         flat = np.asarray(flat, dtype=float).ravel()
 
@@ -367,11 +425,15 @@ class Nnet:
 
     def get_biases(self) -> np.ndarray:
         """
-        Return all neuron biases (excluding input neurons) as a flat vector.
+        Return all trainable biases as a flat vector (excluding input neurons).
+
+        Returns:
+            np.ndarray: Bias vector.
 
         Order:
             (layer_index, neuron_index) over all non-input neurons.
         """
+
         if not self.layers:
             return np.empty(0, dtype=float)
 
@@ -388,10 +450,10 @@ class Nnet:
         same ordering as `get_biases()`.
 
         Args:
-            flat: 1D array-like of biases for all non-input neurons.
+            flat (np.ndarray): Bias values in deterministic order.
 
         Raises:
-            ValueError: If the length does not match the number of targeted neurons.
+            ValueError: If length does not match the number of biases.
         """
         flat = np.asarray(flat, dtype=float).ravel()
 

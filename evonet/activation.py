@@ -2,10 +2,10 @@
 """
 Activation functions for evolvable neural networks.
 
-Provides scalar functions such as ReLU, Tanh, Sigmoid, as well as a softmax
-implementation and a function registry (ACTIVATIONS).
+Includes standard nonlinearities (ReLU, Tanh, Sigmoid), linear and threshold functions,
+modern smooth activations (Swish, Mish), and a softmax utility.
 
-These functions are stateless and operate on scalars unless otherwise noted.
+All functions are scalar-based and stateless, unless noted otherwise.
 """
 
 import random

@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: MIT
 """
-Basic mutation operations for evolvable neural networks.
+Mutation operations for evolvable neural networks.
 
-Supports weight, bias, and structural mutations.
+Includes:
+- Activation mutation
+- Weight and bias mutation (Gaussian noise)
+- Structural mutations: add/remove neurons and connections
 """
 
 import random
@@ -17,7 +20,13 @@ from evonet.neuron import Neuron
 
 
 def mutate_activation(neuron: Neuron, activations: list[str] | None = None) -> None:
-    """Assign a new random activation to a single neuron."""
+    """
+    Assign a new random activation function to a single neuron.
+
+    Args:
+        neuron (Neuron): The target neuron to mutate.
+        activations (list[str] | None): Optional list of allowed activation names.
+    """
     neuron.activation_name = random_function_name(activations)
     neuron.activation = ACTIVATIONS[neuron.activation_name]
 
@@ -26,12 +35,12 @@ def mutate_activations(
     net: Nnet, probability: float = 1.0, activations: list[str] | None = None
 ) -> None:
     """
-    Randomly mutate activations of non-input neurons in a network.
+    Mutate the activation functions of non-input neurons in the network.
 
     Args:
-        net (Nnet): The network whose neurons will be mutated.
-        probability (float): Per-neuron mutation probability.
-        activations (list[str] | None): Allowed activation names; if None, all.
+        net (Nnet): The target network.
+        probability (float): Mutation probability per neuron.
+        activations (list[str] | None): Optional subset of allowed activation functions.
     """
     for neuron in net.get_all_neurons():
         if neuron.role != NeuronRole.INPUT and np.random.rand() < probability:
@@ -39,11 +48,19 @@ def mutate_activations(
 
 
 def mutate_weight(conn: Connection, std: float = 0.1) -> None:
+    """Apply Gaussian noise to a connection weight."""
     conn.weight += np.random.normal(0, std)
 
 
 def mutate_weights(net: Nnet, probability: float = 1.0, std: float = 0.1) -> None:
-    """Applies Gaussian noise to all connection weights."""
+    """
+    Apply Gaussian noise to weights of connections in the network.
+
+    Args:
+        net (Nnet): The target network.
+        probability (float): Probability to mutate each connection.
+        std (float): Standard deviation of the noise.
+    """
 
     for conn in net.get_all_connections():
         if np.random.rand() < probability:
@@ -51,18 +68,30 @@ def mutate_weights(net: Nnet, probability: float = 1.0, std: float = 0.1) -> Non
 
 
 def mutate_bias(neuron: Neuron, std: float = 0.1) -> None:
+    """Apply Gaussian noise to a neuron's bias value."""
     neuron.bias += np.random.normal(0, std)
 
 
 def mutate_biases(net: Nnet, probability: float = 1.0, std: float = 0.1) -> None:
-    """Applies Gaussian noise to all neuron biases (except input neurons)."""
+    """
+    Apply Gaussian noise to biases of neurons in the network.
+
+    Args:
+        net (Nnet): The target network.
+        probability (float): Mutation probability per neuron.
+        std (float): Standard deviation of the noise.
+    """
     for neuron in net.get_all_neurons():
         if neuron.role != NeuronRole.INPUT and np.random.rand() < probability:
             mutate_bias(neuron, std)
 
 
 def add_random_connection(net: Nnet) -> None:
-    """Creates a new connection between two random Neuronen."""
+    """
+    Add a connection between two randomly chosen neurons.
+
+    Skips invalid combinations (e.g. recurrent input, duplicate edges).
+    """
 
     all_neurons = net.get_all_neurons()
     if len(all_neurons) < 2:
@@ -94,7 +123,11 @@ def add_random_connection(net: Nnet) -> None:
 
 
 def remove_random_connection(net: Nnet) -> None:
-    """Entfernt zufällig eine bestehende Verbindung."""
+    """
+    Remove a randomly selected connection from the network.
+
+    Does nothing if no connections are present.
+    """
     all_connections = net.get_all_connections()
     if not all_connections:
         return
@@ -105,8 +138,11 @@ def remove_random_connection(net: Nnet) -> None:
 
 
 def add_random_neuron(net: Nnet) -> None:
-    """Fügt ein neues Hidden-Neuron in ein zufälliges Layer ein und verbindet es mit
-    vorhandenen Neuronen."""
+    """
+    Insert a new hidden neuron into a random layer.
+
+    If the network has only input/output, a hidden layer is inserted.
+    """
     if len(net.layers) < 2:
         return
 
@@ -130,9 +166,9 @@ def add_random_neuron(net: Nnet) -> None:
 
 def remove_random_neuron(net: Nnet) -> None:
     """
-    Entfernt zufällig ein Hidden-Neuron (keine Input/Output).
+    Remove a randomly selected hidden neuron from the network.
 
-    Alle zugehörigen Verbindungen werden mit entfernt.
+    All incoming and outgoing connections are also removed.
     """
     hidden_neurons = [n for n in net.get_all_neurons() if n.role == NeuronRole.HIDDEN]
     if not hidden_neurons:
@@ -154,7 +190,18 @@ def remove_random_neuron(net: Nnet) -> None:
 
 
 def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) -> None:
-    """Add Neuron between connection."""
+    """
+    Insert a neuron in the middle of an existing connection.
+
+    The old connection is removed, and two new ones are created:
+    - from source → new neuron
+    - from new neuron → target
+
+    Args:
+        net (Nnet): The target network.
+        activation (str): Activation function for the new neuron.
+        noise (float): Optional noise applied to new weights.
+    """
     all_connections = net.get_all_connections()
     if not all_connections:
         return

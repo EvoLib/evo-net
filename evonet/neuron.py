@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 """
-Neuron definition for evolvable neural network.
+Neuron class for evolvable neural networks.
 
-Each neuron holds its activation function, input/output connections, bias value, and a
-cached output from the last forward pass.
+Each neuron holds an activation function, input/output connections, a bias term, and
+stores intermediate values (input, output, last_output) during computation.
 """
 
 from typing import Callable
@@ -16,16 +16,25 @@ from evonet.enums import NeuronRole
 
 class Neuron:
     """
-    Represents a single neuron in the network.
+    Represents a single neuron within the network.
+
+    A neuron receives inputs via incoming connections, applies an activation
+    function to the sum of its inputs and bias, and transmits the result
+    to its outgoing connections.
 
     Attributes:
-        id (str): Unique identifier for tracking.
-        activation_name (str): Name of the activation function.
-        bias (float): Bias value added to incoming inputs.
-        incoming (list): Incoming connections (to be filled externally).
-        outgoing (list): Outgoing connections (to be filled externally).
-        output (float): Cached result after activation.
-        label (str): An optional label
+        id (str): Unique identifier (UUID, shortened for readability).
+        role (NeuronRole): Role of the neuron (INPUT, HIDDEN, OUTPUT, BIAS).
+        activation_name (str): Name of the activation function used.
+        activation (Callable): The actual activation function (e.g. tanh, relu).
+        bias (float): Additive scalar bias (only used if role != INPUT).
+        incoming (list[Connection]): Incoming connections from other neurons.
+        outgoing (list[Connection]): Outgoing connections to target neurons.
+        input (float): Accumulated input before activation.
+        output (float): Activation output (after applying function).
+        last_output (float): Output from the previous timestep (used for recurrent
+                             links).
+        label (str): Optional human-readable label (used in visualizations).
     """
 
     def __init__(
@@ -47,11 +56,26 @@ class Neuron:
         self.label = label
 
     def reset(self) -> None:
+        """
+        Reset the neuron's state for a new forward pass.
+
+        Sets:
+        - last_output = output
+        - output = 0.0
+        - input = 0.0
+        """
         self.last_output = self.output
         self.output = 0.0
         self.input = 0.0
 
     def __repr__(self) -> str:
+        """
+        Return a concise string representation of the neuron.
+
+        Example:
+            Neuron id=ab12cd act=tanh role=HIDDEN bias=0.00 input=0.12345 output=0.67890
+        """
+
         return (
             f"Neuron id={self.id[:6]} "
             f"act={self.activation_name} "
