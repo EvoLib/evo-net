@@ -91,7 +91,7 @@ def mutate_biases(net: Nnet, probability: float = 1.0, std: float = 0.1) -> None
 def add_random_connection(
     net: Nnet,
     allowed_recurrent: Optional[Collection[RecurrentKind | str]] = None,
-) -> None:
+) -> bool:
     """
     Add a valid connection between two randomly chosen neurons.
 
@@ -114,7 +114,7 @@ def add_random_connection(
 
     all_neurons = net.get_all_neurons()
     if len(all_neurons) < 2:
-        return
+        return False
 
     # Build a dict of existing connections
     existing: set[tuple[Neuron, Neuron]] = {
@@ -152,7 +152,7 @@ def add_random_connection(
                 candidates.append((src, dst))  # recurrent allowed by policy
 
     if not candidates:
-        return
+        return False
 
     src, dst = random.choice(candidates)
     src_layer_idx, dst_layer_idx = layer_of[src], layer_of[dst]
@@ -163,6 +163,7 @@ def add_random_connection(
     )
 
     net.add_connection(src, dst, conn_type=conn_type)
+    return True
 
 
 def remove_random_connection(net: Nnet) -> None:
