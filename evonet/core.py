@@ -342,6 +342,14 @@ class Nnet:
 
         dot.render(name, cleanup=True)
 
+    def _build_index_map(self) -> dict[Neuron, tuple[int, int]]:
+        """Build a mapping from neuron -> (layer_idx, neuron_idx) for O(1) lookups."""
+        index_map: dict[Neuron, tuple[int, int]] = {}
+        for layer_idx, layer in enumerate(self.layers):
+            for neuron_idx, neuron in enumerate(layer.neurons):
+                index_map[neuron] = (layer_idx, neuron_idx)
+        return index_map
+
     def get_weights(self) -> np.ndarray:
         """
         Return all connection weights as a flat vector in a deterministic order.
@@ -349,34 +357,28 @@ class Nnet:
         Returns:
             np.ndarray: 1D array of connection weights.
 
-        Order:
-            (source_layer, source_index, target_layer, target_index, connection_type)
+        Order key:
+            (src_layer_idx, src_neuron_idx, dst_layer_idx,
+            dst_neuron_idx, connection_type)
         """
         conns = self.get_all_connections()
         if not conns:
             return np.empty(0, dtype=float)
 
-        # Local helpers to locate a neuron's indices
-        def layer_index(n: Neuron) -> int:
-            for li, layer in enumerate(self.layers):
-                if n in layer.neurons:
-                    return li
-            raise ValueError("Neuron is not registered in any layer.")
+        index_map = self._build_index_map()
 
-        def neuron_index_in_layer(n: Neuron) -> int:
-            li = layer_index(n)
-            return self.layers[li].neurons.index(n)
-
-        conns_sorted = sorted(
-            conns,
-            key=lambda c: (
-                layer_index(c.source),
-                neuron_index_in_layer(c.source),
-                layer_index(c.target),
-                neuron_index_in_layer(c.target),
+        def sort_key(c: Connection) -> tuple[int, int, int, int, int]:
+            src_layer_idx, src_neuron_idx = index_map[c.source]
+            dst_layer_idx, dst_neuron_idx = index_map[c.target]
+            return (
+                src_layer_idx,
+                src_neuron_idx,
+                dst_layer_idx,
+                dst_neuron_idx,
                 int(c.type.value),
-            ),
-        )
+            )
+
+        conns_sorted = sorted(conns, key=sort_key)
         return np.array([c.weight for c in conns_sorted], dtype=float)
 
     def set_weights(self, flat: np.ndarray) -> None:
@@ -392,36 +394,33 @@ class Nnet:
         """
         flat = np.asarray(flat, dtype=float).ravel()
 
-        def layer_index(n: Neuron) -> int:
-            for li, layer in enumerate(self.layers):
-                if n in layer.neurons:
-                    return li
-            raise ValueError("Neuron is not registered in any layer.")
-
-        def neuron_index_in_layer(n: Neuron) -> int:
-            li = layer_index(n)
-            return self.layers[li].neurons.index(n)
-
         conns = self.get_all_connections()
-        conns_sorted = sorted(
-            conns,
-            key=lambda c: (
-                layer_index(c.source),
-                neuron_index_in_layer(c.source),
-                layer_index(c.target),
-                neuron_index_in_layer(c.target),
+        if not conns and flat.size == 0:
+            return
+
+        index_map = self._build_index_map()
+
+        def sort_key(c: Connection) -> tuple[int, int, int, int, int]:
+            src_layer_idx, src_neuron_idx = index_map[c.source]
+            dst_layer_idx, dst_neuron_idx = index_map[c.target]
+            return (
+                src_layer_idx,
+                src_neuron_idx,
+                dst_layer_idx,
+                dst_neuron_idx,
                 int(c.type.value),
-            ),
-        )
+            )
+
+        conns_sorted = sorted(conns, key=sort_key)
 
         if flat.size != len(conns_sorted):
             raise ValueError(
-                f"Length mismatch for weights: "
-                f"expected {len(conns_sorted)}, got {flat.size}."
+                f"Length mismatch for weights: expected {len(conns_sorted)}, "
+                f"got {flat.size}."
             )
 
-        for w, c in zip(flat, conns_sorted):
-            c.weight = float(w)
+        for weight_value, conn in zip(flat, conns_sorted):
+            conn.weight = float(weight_value)
 
     def get_biases(self) -> np.ndarray:
         """
