@@ -90,10 +90,12 @@ def add_random_connection(net: Nnet) -> None:
     """
     Add a valid connection between two randomly chosen neurons.
 
-    Skips invalid combinations:
-    - connections to INPUT neurons
-    - self-connections on INPUT neurons
-    - duplicate connections
+    Rules:
+    - disallow connections into INPUT neurons
+    - disallow duplicate (source, target) pairs
+    - classify connection type by layer order:
+      * src_layer < dst_layer  -> STANDARD
+      * src_layer >= dst_layer -> RECURRENT
     """
     all_neurons = net.get_all_neurons()
     if len(all_neurons) < 2:
@@ -103,6 +105,12 @@ def add_random_connection(net: Nnet) -> None:
     existing: set[tuple[Neuron, Neuron]] = {
         (c.source, c.target) for c in net.get_all_connections()
     }
+
+    # neuron -> layer index
+    layer_of: dict[Neuron, int] = {}
+    for layer_idx, layer in enumerate(net.layers):
+        for neuron in layer.neurons:
+            layer_of[neuron] = layer_idx
 
     candidates: list[tuple[Neuron, Neuron]] = []
     for src in all_neurons:
@@ -117,7 +125,13 @@ def add_random_connection(net: Nnet) -> None:
         return
 
     src, dst = random.choice(candidates)
-    conn_type = ConnectionType.RECURRENT if src == dst else ConnectionType.STANDARD
+    src_layer_idx, dst_layer_idx = layer_of[src], layer_of[dst]
+    conn_type = (
+        ConnectionType.STANDARD
+        if src_layer_idx < dst_layer_idx
+        else ConnectionType.RECURRENT
+    )
+
     net.add_connection(src, dst, conn_type=conn_type)
 
 
