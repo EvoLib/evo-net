@@ -99,22 +99,24 @@ def add_random_connection(net: Nnet) -> None:
     if len(all_neurons) < 2:
         return
 
-    # Build all valid connection pairs
-    candidates: list[tuple[Neuron, Neuron]] = []
+    # Build a dict of existing connections
+    existing: set[tuple[Neuron, Neuron]] = {
+        (c.source, c.target) for c in net.get_all_connections()
+    }
 
+    candidates: list[tuple[Neuron, Neuron]] = []
     for src in all_neurons:
         for dst in all_neurons:
             if dst.role == NeuronRole.INPUT:
-                continue  # disallow any input targets
-            if any(conn.target == dst for conn in src.outgoing):
-                continue  # disallow duplicates
+                continue
+            if (src, dst) in existing:
+                continue
             candidates.append((src, dst))
 
     if not candidates:
-        return  # no valid pairs available
+        return
 
     src, dst = random.choice(candidates)
-
     conn_type = ConnectionType.RECURRENT if src == dst else ConnectionType.STANDARD
     net.add_connection(src, dst, conn_type=conn_type)
 
