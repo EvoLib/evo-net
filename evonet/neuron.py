@@ -84,3 +84,9 @@ class Neuron:
             f"input={self.input:0.5f} "
             f"output={self.output:0.5f}"
         )
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Neuron) and self.id == other.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)
