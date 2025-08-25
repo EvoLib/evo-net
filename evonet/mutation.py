@@ -88,38 +88,35 @@ def mutate_biases(net: Nnet, probability: float = 1.0, std: float = 0.1) -> None
 
 def add_random_connection(net: Nnet) -> None:
     """
-    Add a connection between two randomly chosen neurons.
+    Add a valid connection between two randomly chosen neurons.
 
-    Skips invalid combinations (e.g. recurrent input, duplicate edges).
+    Skips invalid combinations:
+    - connections to INPUT neurons
+    - self-connections on INPUT neurons
+    - duplicate connections
     """
-
     all_neurons = net.get_all_neurons()
     if len(all_neurons) < 2:
         return
 
-    tries = 10  # retry limit to avoid infinite loops
-    for _ in range(tries):
-        src = random.choice(all_neurons)
-        dst = random.choice(all_neurons)
+    # Build all valid connection pairs
+    candidates: list[tuple[Neuron, Neuron]] = []
 
-        # No recorrent connection on INPUT
-        if src == dst and src.role == NeuronRole.INPUT:
-            continue
+    for src in all_neurons:
+        for dst in all_neurons:
+            if dst.role == NeuronRole.INPUT:
+                continue  # disallow any input targets
+            if any(conn.target == dst for conn in src.outgoing):
+                continue  # disallow duplicates
+            candidates.append((src, dst))
 
-        # No recurrent connections to INPUT
-        if dst.role == NeuronRole.INPUT:
-            continue
+    if not candidates:
+        return  # no valid pairs available
 
-        if any(conn.target == dst for conn in src.outgoing):
-            continue
+    src, dst = random.choice(candidates)
 
-        if src == dst:
-            conn_type = ConnectionType.RECURRENT
-        else:
-            conn_type = ConnectionType.STANDARD
-
-        net.add_connection(src, dst, conn_type=conn_type)
-        return
+    conn_type = ConnectionType.RECURRENT if src == dst else ConnectionType.STANDARD
+    net.add_connection(src, dst, conn_type=conn_type)
 
 
 def remove_random_connection(net: Nnet) -> None:
