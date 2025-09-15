@@ -10,7 +10,7 @@ Includes:
 
 import random
 from collections.abc import Collection
-from typing import Optional
+from typing import Literal, Optional, Union, cast
 
 import numpy as np
 
@@ -19,6 +19,8 @@ from evonet.connection import Connection
 from evonet.core import Nnet
 from evonet.enums import ConnectionType, NeuronRole, RecurrentKind
 from evonet.neuron import Neuron
+
+ALL_ACTIVATIONS = "all"
 
 
 def mutate_activation(neuron: Neuron, activations: list[str] | None = None) -> None:
@@ -34,19 +36,78 @@ def mutate_activation(neuron: Neuron, activations: list[str] | None = None) -> N
 
 
 def mutate_activations(
-    net: Nnet, probability: float = 1.0, activations: list[str] | None = None
+    net: Nnet,
+    probability: float = 1.0,
+    activations: Optional[list[str]] = None,
+    layers: Optional[dict[int, Union[list[str], Literal["all"]]]] = None,
 ) -> None:
     """
-    Mutate the activation functions of non-input neurons in the network.
+    Mutate the activation functions of neurons with optional global or layer-specific
+    control.
+
+    Modes:
+        A) Default: Hidden layers are mutated using all available activation functions.
+        B) With `activations`: Hidden layers use a restricted set of activation
+           functions.
+        C) With `layers`: Only specified layers are mutated, each with their own
+           activation sets. This mode overrides the `activations` argument.
 
     Args:
-        net (Nnet): The target network.
-        probability (float): Mutation probability per neuron.
-        activations (list[str] | None): Optional subset of allowed activation functions.
+        net (Nnet): The target neural network.
+        probability (float): Mutation probability per neuron (must be in [0, 1]).
+        activations (list[str] | None): Optional list of allowed activation functions
+                                        (used in mode B).
+        layers (dict[int, list[str] | Literal["all"]] | None):
+            Optional per-layer activation sets (mode C).
+            If specified, overrides the `activations` argument.
+
+    Notes:
+        - Input and output layers are not mutated unless explicitly included
+          in `layers`.
+        - The function relies on `numpy.random.rand()` for random number generation.
+        - The `mutate_activation` function is called to perform the actual mutation of
+          a neuron's activation function.
+
+    Raises:
+        ValueError: If `probability` is not in [0, 1] or
+                    if `layers` contains invalid layer indices.
+
+    Example:
+        >>> net = Nnet(...)  # Assume a neural network with 3 layers
+        >>> mutate_activations(net, probability=0.5, activations=["relu", "sigmoid"])
+        >>> mutate_activations(net, layers={1: ["relu"], 2: "all"}, probability=0.3)
     """
-    for neuron in net.get_all_neurons():
-        if neuron.role != NeuronRole.INPUT and np.random.rand() < probability:
-            mutate_activation(neuron, activations)
+
+    if not 0 <= probability <= 1:
+        raise ValueError("Probability must be between 0 and 1.")
+
+    if layers is not None:
+        max_layer = len(net.layers)
+        invalid_layers = [i for i in layers if i < 0 or i >= max_layer]
+        if invalid_layers:
+            raise ValueError(
+                f"Invalid layer indices: {invalid_layers}."
+                f"Must be between 0 and {max_layer - 1}."
+            )
+
+    for layer_idx, layer in enumerate(net.layers):
+        if layers is not None:
+            if layer_idx not in layers:
+                continue
+
+            if layers[layer_idx] != ALL_ACTIVATIONS:
+                layer_activations = cast(list[str], layers[layer_idx])
+            else:
+                layer_activations = None  # None: mutate_activation uses all activations
+
+        elif layer_idx == 0 or layer_idx == len(net.layers) - 1:
+            continue
+        else:
+            layer_activations = activations
+
+        for neuron in layer.neurons:
+            if np.random.rand() < probability:
+                mutate_activation(neuron, layer_activations)
 
 
 def mutate_weight(conn: Connection, std: float = 0.1) -> None:
