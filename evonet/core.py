@@ -177,11 +177,11 @@ class Nnet:
         source.outgoing.append(conn)
         target.incoming.append(conn)
 
-    def reset(self) -> None:
+    def reset(self, full: bool = False) -> None:
         """Reset all neurons (clears input, output, and caches)."""
         for layer in self.layers:
             for neuron in layer.neurons:
-                neuron.reset()
+                neuron.reset(full=full)
 
     def calc(self, input_values: list[float]) -> list[float]:
         """
@@ -196,6 +196,11 @@ class Nnet:
         Raises:
             AssertionError: If input size does not match input layer.
         """
+
+        # Save LAST OUTPUT
+        for layer in self.layers:
+            for neuron in layer.neurons:
+                neuron.last_output = neuron.output
 
         self.reset()
 

@@ -55,18 +55,25 @@ class Neuron:
         self.last_output: float = 0.0
         self.label = label
 
-    def reset(self) -> None:
+    def reset(self, full: bool = False) -> None:
         """
-        Reset the neuron's state for a new forward pass.
+        Clear current neuron state for a new forward pass.
 
-        Sets:
-        - last_output = output
-        - output = 0.0
-        - input = 0.0
+        Args:
+            full (bool): If True, also clears `last_output` (used for recurrent memory).
+
+        This method:
+        - Always resets `input` and `output`.
+        - Only resets `last_output` if `full=True`.
+
+        Use `full=True` if the neuron should forget its prior state
+        (e.g. after fitness evaluation).
         """
-        self.last_output = self.output
+
         self.output = 0.0
         self.input = 0.0
+        if full:
+            self.last_output = 0.0
 
     def __repr__(self) -> str:
         """
