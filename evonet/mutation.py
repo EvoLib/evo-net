@@ -328,7 +328,7 @@ def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) ->
         role=NeuronRole.HIDDEN,
         activation=activation,
         connect_layer=False,
-    )
+    )[0]
 
     # Set new connections
     src.outgoing.remove(conn)

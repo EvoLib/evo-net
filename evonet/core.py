@@ -9,11 +9,13 @@ export interfaces.
 
 from __future__ import annotations
 
+from typing import Optional
+
 import graphviz
 import numpy as np
 
 from evonet.connection import Connection
-from evonet.enums import ConnectionType, NeuronRole
+from evonet.enums import ConnectionType, NeuronRole, RecurrentKind
 from evonet.layer import Layer
 from evonet.neuron import Neuron
 
@@ -99,24 +101,23 @@ class Nnet:
         role: NeuronRole = NeuronRole.HIDDEN,
         count: int = 1,
         connect_layer: bool = True,
-    ) -> Neuron:
+        recurrent: Optional[set[RecurrentKind]] = None,
+    ) -> list[Neuron]:
         """
-        Add one or more neurons to a specified layer.
+        Add one or more neurons to the network.
 
         Args:
-            layer_idx (int | None): Index of the target layer. If None, uses last layer.
+            layer_idx (int | None): Target layer index. Defaults to last layer.
             activation (str): Activation function name.
             bias (float): Initial bias value.
-            label (str): Optional label for visualization/debugging.
+            label (str): Optional label.
             role (NeuronRole): Role of the neuron (INPUT, HIDDEN, OUTPUT).
-            count (int): Number of neurons to add.
-            connect_layer (bool): Whether to auto-connect to adjacent layers.
+            count (int): Number of neurons to add (default: 1).
+            connect_layer (bool): If True, auto-connect to adjacent layers.
+            recurrent (set[RecurrentKind] | None): Optional recurrent connection types.
 
         Returns:
-            Neuron: Reference to the last added neuron.
-
-        Raises:
-            ValueError: If layer index is invalid.
+            list[Neuron]: List of added neurons.
         """
 
         if layer_idx is None:
@@ -127,31 +128,67 @@ class Nnet:
         if layer_idx >= len(self.layers):
             raise ValueError(f"Layer index out of bounds: {layer_idx}")
 
-        for _ in range(count):
+        target_layer = self.layers[layer_idx]
+        new_neurons: list[Neuron] = []
+
+        # Create neurons without connections
+        for i in range(count):
             neuron = Neuron(activation=activation, bias=bias)
             neuron.role = role
             neuron.label = label
+            target_layer.neurons.append(neuron)
+            new_neurons.append(neuron)
 
-            self.layers[layer_idx].neurons.append(neuron)
+        # Connect to previous layer (feedforward)
+        if connect_layer and layer_idx > 0:
+            for prev_neuron in self.layers[layer_idx - 1].neurons:
+                for n in new_neurons:
+                    self.add_connection(prev_neuron, n)
 
-            if connect_layer and layer_idx > 0:
-                # Finde letzten nicht-leeren Layer vor diesem
-                for prev_idx in range(layer_idx - 1, -1, -1):
-                    prev_layer = self.layers[prev_idx]
-                    if prev_layer.neurons:
-                        for prev_neuron in prev_layer.neurons:
-                            self.add_connection(prev_neuron, neuron)
-                        break
+        # Connect to next layer (feedforward)
+        if (
+            connect_layer
+            and role == NeuronRole.HIDDEN
+            and layer_idx < len(self.layers) - 1
+        ):
 
-            # connect to next non-empty layer
-            if connect_layer and role == NeuronRole.HIDDEN:
-                for next_idx in range(layer_idx + 1, len(self.layers)):
-                    next_layer = self.layers[next_idx]
-                    if next_layer.neurons:
-                        for next_neuron in next_layer.neurons:
-                            self.add_connection(neuron, next_neuron)
-                        break
-        return neuron
+            for next_neuron in self.layers[layer_idx + 1].neurons:
+                for n in new_neurons:
+                    self.add_connection(n, next_neuron)
+
+        # Recurrent connections
+        if recurrent:
+            if RecurrentKind.DIRECT in recurrent:
+                for n in new_neurons:
+                    if n.role == NeuronRole.HIDDEN:
+                        self.add_connection(n, n, conn_type=ConnectionType.RECURRENT)
+
+            if RecurrentKind.LATERAL in recurrent:
+                # All neurons in this layer (old + new)
+                full_layer = list(self.layers[layer_idx].neurons)
+
+                for src in full_layer:
+                    for dst in new_neurons:
+                        if src is not dst:
+                            self.add_connection(
+                                src, dst, conn_type=ConnectionType.RECURRENT
+                            )
+
+            if RecurrentKind.INDIRECT in recurrent:
+                for src in new_neurons:
+                    for lower_layer in self.layers[1:layer_idx]:
+                        for dst in lower_layer.neurons:
+                            self.add_connection(
+                                src, dst, conn_type=ConnectionType.RECURRENT
+                            )
+                for higher_layer in self.layers[layer_idx + 1 :]:
+                    for src in higher_layer.neurons:
+                        for dst in new_neurons:
+                            self.add_connection(
+                                src, dst, conn_type=ConnectionType.RECURRENT
+                            )
+
+        return new_neurons
 
     def add_connection(
         self,
