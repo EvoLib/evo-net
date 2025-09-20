@@ -242,11 +242,16 @@ def remove_random_connection(net: Nnet) -> None:
     conn.target.incoming.remove(conn)
 
 
-def add_random_neuron(net: Nnet) -> None:
+def add_random_neuron(net: Nnet, activations: list[str] | None = None) -> None:
     """
     Insert a new hidden neuron into a random layer.
 
     If the network has only input/output, a hidden layer is inserted.
+
+    Args:
+        net (Nnet): The target network.
+        activations (list[str] | None): Optional list of allowed activation functions.
+                                        If None, all registered activations are used.
     """
     if len(net.layers) < 2:
         return
@@ -254,7 +259,7 @@ def add_random_neuron(net: Nnet) -> None:
     if len(net.layers) == 2:
         net.insert_layer(1)
 
-    # Ziel-Layer wählen (nicht Input, nicht Output)
+    # Choose target layer (not input, not output)
     candidate_layers = net.layers[1:-1]
     if not candidate_layers:
         return
@@ -263,7 +268,7 @@ def add_random_neuron(net: Nnet) -> None:
 
     net.add_neuron(
         layer_idx=net.layers.index(layer),
-        activation="tanh",
+        activation=random_function_name(activations),
         role=NeuronRole.HIDDEN,
         connect_layer=True,
     )
