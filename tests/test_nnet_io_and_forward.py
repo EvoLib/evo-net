@@ -29,21 +29,21 @@ def build_simple_ff_net() -> Nnet:
         role=NeuronRole.INPUT,
         activation="linear",
         count=2,
-        connect_layer=False,
+        connection_init="none",
     )
     net.add_neuron(
         layer_idx=1,
         role=NeuronRole.HIDDEN,
         activation="linear",
         count=3,
-        connect_layer=True,
+        connection_init="random",
     )
     net.add_neuron(
         layer_idx=2,
         role=NeuronRole.OUTPUT,
         activation="linear",
         count=1,
-        connect_layer=True,
+        connection_init="random",
     )
     return net
 
@@ -117,14 +117,14 @@ def test_forward_sanity_linear_1x1() -> None:
         role=NeuronRole.INPUT,
         activation="linear",
         count=1,
-        connect_layer=False,
+        connection_init="none",
     )
     net.add_neuron(
         layer_idx=1,
         role=NeuronRole.OUTPUT,
         activation="linear",
         count=1,
-        connect_layer=True,
+        connection_init="random",
     )
 
     # There should be exactly one connection L0(0) -> L1(0). Force known params:

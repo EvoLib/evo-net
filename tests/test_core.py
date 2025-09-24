@@ -13,14 +13,14 @@ def test_forward_pass_identity() -> None:
         activation="linear",
         role=NeuronRole.INPUT,
         label="in",
-        connect_layer=False,
+        connection_init="none",
     )
     net.add_neuron(
         layer_idx=1,
         activation="linear",
         role=NeuronRole.OUTPUT,
         label="out",
-        connect_layer=False,
+        connection_init="none",
     )
 
     src = net.layers[0].neurons[0]
@@ -49,7 +49,7 @@ def test_forward_pass_with_bias() -> None:
         activation="linear",
         role=NeuronRole.INPUT,
         label="in",
-        connect_layer=False,
+        connection_init="none",
     )
     net.add_neuron(
         layer_idx=1,
@@ -57,7 +57,7 @@ def test_forward_pass_with_bias() -> None:
         role=NeuronRole.OUTPUT,
         bias=0.5,
         label="out",
-        connect_layer=False,
+        connection_init="none",
     )
 
     src = net.layers[0].neurons[0]

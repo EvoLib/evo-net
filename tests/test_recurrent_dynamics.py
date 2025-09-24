@@ -15,17 +15,17 @@ def _mk_linear_ih_h_o() -> tuple[Nnet, Neuron, Neuron, Neuron]:
     net.add_layer(3)  # input, hidden, output
 
     neurons: list[Neuron] = net.add_neuron(
-        layer_idx=0, role=NeuronRole.INPUT, activation="linear", connect_layer=False
+        layer_idx=0, role=NeuronRole.INPUT, activation="linear", connection_init="none"
     )
     n_in = neurons[0]
 
     neurons = net.add_neuron(
-        layer_idx=1, role=NeuronRole.HIDDEN, activation="linear", connect_layer=False
+        layer_idx=1, role=NeuronRole.HIDDEN, activation="linear", connection_init="none"
     )
     n_hid = neurons[0]
 
     neurons = net.add_neuron(
-        layer_idx=2, role=NeuronRole.OUTPUT, activation="linear", connect_layer=False
+        layer_idx=2, role=NeuronRole.OUTPUT, activation="linear", connection_init="none"
     )
     n_out = neurons[0]
 

@@ -270,7 +270,7 @@ def add_random_neuron(net: Nnet, activations: list[str] | None = None) -> None:
         layer_idx=net.layers.index(layer),
         activation=random_function_name(activations),
         role=NeuronRole.HIDDEN,
-        connect_layer=True,
+        connection_init="random",
     )
 
 
@@ -332,7 +332,7 @@ def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) ->
         layer_idx=insert_idx,
         role=NeuronRole.HIDDEN,
         activation=activation,
-        connect_layer=False,
+        connection_init="none",
     )[0]
 
     # Set new connections

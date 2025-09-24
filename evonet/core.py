@@ -9,7 +9,7 @@ export interfaces.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 import graphviz
 import numpy as np
@@ -100,31 +100,33 @@ class Nnet:
         label: str = "",
         role: NeuronRole = NeuronRole.HIDDEN,
         count: int = 1,
-        connect_layer: bool = True,
+        connection_init: Literal["random", "zero", "none"] = "random",
         recurrent: Optional[set[RecurrentKind]] = None,
     ) -> list[Neuron]:
         """
         Add one or more neurons to the network.
 
         Args:
-            layer_idx (int | None): Target layer index. Defaults to last layer.
-            activation (str): Activation function name.
-            bias (float): Initial bias value.
-            label (str): Optional label.
-            role (NeuronRole): Role of the neuron (INPUT, HIDDEN, OUTPUT).
-            count (int): Number of neurons to add (default: 1).
-            connect_layer (bool): If True, auto-connect to adjacent layers.
-            recurrent (set[RecurrentKind] | None): Optional recurrent connection types.
+            layer_idx: Target layer index. Defaults to last layer.
+            activation: Activation function name.
+            bias: Initial bias value.
+            label: Optional label.
+            role: Role of the neuron (INPUT, HIDDEN, OUTPUT).
+            count: Number of neurons to add (default: 1).
+            connection_init:
+                "random" – connect with random weights (feedforward + recurrent)
+                "zero"   – connect with weight 0.0 (feedforward + recurrent)
+                "none"   – do not create connections (feedforward + recurrent)
+            recurrent: Optional recurrent connection types.
 
         Returns:
             list[Neuron]: List of added neurons.
         """
-
         if layer_idx is None:
             layer_idx = len(self.layers) - 1  # Add neuron to last layer
 
         if layer_idx < 0:
-            raise ValueError(f"Expected positiv layerindex: got {layer_idx}")
+            raise ValueError(f"Layer index must be >= 0 (got {layer_idx})")
         if layer_idx >= len(self.layers):
             raise ValueError(f"Layer index out of bounds: {layer_idx}")
 
@@ -132,46 +134,56 @@ class Nnet:
         new_neurons: list[Neuron] = []
 
         # Create neurons without connections
-        for i in range(count):
+        for _ in range(count):
             neuron = Neuron(activation=activation, bias=bias)
             neuron.role = role
             neuron.label = label
             target_layer.neurons.append(neuron)
             new_neurons.append(neuron)
 
-        # Connect to previous layer (feedforward)
-        if connect_layer and layer_idx > 0:
+        # Weights based on init mode
+        weight_map = {"random": None, "zero": 0.0, "none": None}
+        if connection_init not in weight_map:
+            raise ValueError(f"Invalid connection_init: {connection_init}")
+        weight = weight_map[connection_init]
+
+        skip_connections = connection_init == "none"
+
+        # Connect to previous layer
+        if not skip_connections and layer_idx > 0:
             for prev_neuron in self.layers[layer_idx - 1].neurons:
                 for n in new_neurons:
-                    self.add_connection(prev_neuron, n)
+                    self.add_connection(prev_neuron, n, weight=weight)
 
-        # Connect to next layer (feedforward)
+        # Connect to next layer (hidden only)
         if (
-            connect_layer
+            not skip_connections
             and role == NeuronRole.HIDDEN
             and layer_idx < len(self.layers) - 1
         ):
-
             for next_neuron in self.layers[layer_idx + 1].neurons:
                 for n in new_neurons:
-                    self.add_connection(n, next_neuron)
+                    self.add_connection(n, next_neuron, weight=weight)
 
         # Recurrent connections
-        if recurrent:
+        if recurrent and not skip_connections:
             if RecurrentKind.DIRECT in recurrent:
                 for n in new_neurons:
                     if n.role == NeuronRole.HIDDEN:
-                        self.add_connection(n, n, conn_type=ConnectionType.RECURRENT)
+                        self.add_connection(
+                            n, n, weight=weight, conn_type=ConnectionType.RECURRENT
+                        )
 
             if RecurrentKind.LATERAL in recurrent:
-                # All neurons in this layer (old + new)
                 full_layer = list(self.layers[layer_idx].neurons)
-
                 for src in full_layer:
                     for dst in new_neurons:
                         if src is not dst:
                             self.add_connection(
-                                src, dst, conn_type=ConnectionType.RECURRENT
+                                src,
+                                dst,
+                                weight=weight,
+                                conn_type=ConnectionType.RECURRENT,
                             )
 
             if RecurrentKind.INDIRECT in recurrent:
@@ -179,13 +191,19 @@ class Nnet:
                     for lower_layer in self.layers[1:layer_idx]:
                         for dst in lower_layer.neurons:
                             self.add_connection(
-                                src, dst, conn_type=ConnectionType.RECURRENT
+                                src,
+                                dst,
+                                weight=weight,
+                                conn_type=ConnectionType.RECURRENT,
                             )
                 for higher_layer in self.layers[layer_idx + 1 :]:
                     for src in higher_layer.neurons:
                         for dst in new_neurons:
                             self.add_connection(
-                                src, dst, conn_type=ConnectionType.RECURRENT
+                                src,
+                                dst,
+                                weight=weight,
+                                conn_type=ConnectionType.RECURRENT,
                             )
 
         return new_neurons
