@@ -14,6 +14,7 @@ from typing import Literal, Optional
 import graphviz
 import numpy as np
 
+from evonet.activation import softmax as softmax_vec
 from evonet.connection import Connection
 from evonet.enums import ConnectionType, NeuronRole, RecurrentKind
 from evonet.layer import Layer
@@ -274,10 +275,28 @@ class Nnet:
 
         # Feed-forward by layers: activate first, then propagate non-recurrent edges
         for layer in self.layers:
+
+            # Apply softmax to all neurons with activation_name == "softmax"
+            softmax_neurons = [
+                n for n in layer.neurons if n.activation_name == "softmax"
+            ]
+            if softmax_neurons:
+                if len(softmax_neurons) >= 2:
+                    # Normal softmax behaviour
+                    totals = [n.input + n.bias for n in softmax_neurons]
+                    probabilities = softmax_vec(totals)
+                    for n, p in zip(softmax_neurons, probabilities):
+                        n.output = float(p)
+                else:
+                    # Fallback: single softmax neuron acts like identity
+                    n = softmax_neurons[0]
+                    n.output = n.input + n.bias
+
             # Activate all neurons in this layer
             for n in layer.neurons:
-                total = n.input + n.bias
-                n.output = n.activation(total)
+                if n.activation_name != "softmax":
+                    total = n.input + n.bias
+                    n.output = n.activation(total)
 
             # Propagate to targets (exclude recurrent edges)
             for n in layer.neurons:
@@ -344,7 +363,7 @@ class Nnet:
             ratio="fill",
             splines="spline",
             size="6.68,5!",
-            dpi="200",
+            dpi="600",
         )
         dot.node_attr.update(
             shape="circle", style="filled", fixedsize="shape", width="1.8"

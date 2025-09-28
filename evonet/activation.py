@@ -203,4 +203,5 @@ ACTIVATIONS: dict[str, Callable] = {
     "softplus": softplus,
     "softsign": softsign,
     "hard_sigmoid": hard_sigmoid,
+    "softmax": softmax,
 }
