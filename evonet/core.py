@@ -330,7 +330,7 @@ class Nnet:
             f"{total_connections} connections "
         )
 
-    def print_graph(
+    def plot(
         self,
         name: str,
         engine: str = "dot",
