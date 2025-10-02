@@ -9,6 +9,7 @@ export interfaces.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal, Optional
 
 import graphviz
@@ -549,3 +550,55 @@ class Nnet:
 
         for b, n in zip(flat, targets):
             n.bias = float(b)
+
+    def save(self, path: str) -> None:
+        """
+        Save this network to a file.
+
+        The file format is chosen automatically based on the extension:
+        - .yaml / .yml --> YAML (human-readable, recommended)
+        - .json        --> JSON (machine-friendly)
+
+        Args:
+            path (str): Output file path.
+        """
+
+        from . import serialization  # local import to avoid circular import
+
+        suffix = Path(path).suffix.lower()
+        if suffix in (".yaml", ".yml"):
+            serialization.save_yaml(self, path)
+        elif suffix == ".json":
+            serialization.save_json(self, path)
+        else:
+            raise ValueError(
+                f"Unsupported file extension '{suffix}'. Use .yaml, .yml or .json"
+            )
+
+    @classmethod
+    def load(cls, path: str) -> "Nnet":
+        """
+        Load a network from a file.
+
+        The file format is chosen automatically based on the extension:
+        - .yaml / .yml --> YAML
+        - .json        --> JSON
+
+        Args:
+            path (str): Path to the serialized network file.
+
+        Returns:
+            Nnet: The reconstructed network.
+        """
+
+        from . import serialization  # local import to avoid circular import
+
+        suffix = Path(path).suffix.lower()
+        if suffix in (".yaml", ".yml"):
+            return serialization.load_yaml(path)
+        elif suffix == ".json":
+            return serialization.load_json(path)
+        else:
+            raise ValueError(
+                f"Unsupported file extension '{suffix}'. Use .yaml, .yml or .json"
+            )
