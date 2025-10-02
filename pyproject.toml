@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "evonet"
-version = "0.1.0.dev9"
+version = "0.1.0.dev10"
 description = "Evolvable neural network core for integration with EvoLib"
 authors = [
     { name = "EvoLib", email = "evolib@dismail.de" }
@@ -17,7 +17,8 @@ dependencies = [
     "pyyaml >=6.0",
     "pandas >=2.3.0",
     "pydantic >= 2.7,<3.0",
-    "graphviz>=0.20.1"
+    "graphviz>=0.20.1",
+    "matplotlib"
 ]
 
 classifiers = [
