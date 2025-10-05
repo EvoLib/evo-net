@@ -171,14 +171,17 @@ class Nnet:
         if recurrent and not skip_connections:
             if RecurrentKind.DIRECT in recurrent:
                 for n in new_neurons:
-                    if n.role == NeuronRole.HIDDEN:
-                        self.add_connection(
-                            n, n, weight=weight, conn_type=ConnectionType.RECURRENT
-                        )
+                    if n.role != NeuronRole.HIDDEN:
+                        continue  # No recurrence on INPUT or OUTPUT
+                    self.add_connection(
+                        n, n, weight=weight, conn_type=ConnectionType.RECURRENT
+                    )
 
             if RecurrentKind.LATERAL in recurrent:
                 full_layer = list(self.layers[layer_idx].neurons)
                 for src in full_layer:
+                    if src != NeuronRole.HIDDEN:
+                        continue  # No recurrence on INPUT or OUTPUT
                     for dst in new_neurons:
                         if src is not dst:
                             self.add_connection(
@@ -190,6 +193,8 @@ class Nnet:
 
             if RecurrentKind.INDIRECT in recurrent:
                 for src in new_neurons:
+                    if src != NeuronRole.HIDDEN:
+                        continue  # No recurrence on INPUT or OUTPUT
                     for lower_layer in self.layers[1:layer_idx]:
                         for dst in lower_layer.neurons:
                             self.add_connection(
@@ -200,6 +205,8 @@ class Nnet:
                             )
                 for higher_layer in self.layers[layer_idx + 1 :]:
                     for src in higher_layer.neurons:
+                        if src != NeuronRole.HIDDEN:
+                            continue  # No recurrence on INPUT or OUTPUT
                         for dst in new_neurons:
                             self.add_connection(
                                 src,
