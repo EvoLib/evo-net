@@ -180,7 +180,7 @@ class Nnet:
             if RecurrentKind.LATERAL in recurrent:
                 full_layer = list(self.layers[layer_idx].neurons)
                 for src in full_layer:
-                    if src != NeuronRole.HIDDEN:
+                    if src.role != NeuronRole.HIDDEN:
                         continue  # No recurrence on INPUT or OUTPUT
                     for dst in new_neurons:
                         if src is not dst:
@@ -193,7 +193,7 @@ class Nnet:
 
             if RecurrentKind.INDIRECT in recurrent:
                 for src in new_neurons:
-                    if src != NeuronRole.HIDDEN:
+                    if src.role != NeuronRole.HIDDEN:
                         continue  # No recurrence on INPUT or OUTPUT
                     for lower_layer in self.layers[1:layer_idx]:
                         for dst in lower_layer.neurons:
