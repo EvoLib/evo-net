@@ -230,12 +230,12 @@ class Nnet:
         Args:
             source (Neuron): Source neuron.
             target (Neuron): Target neuron.
-            weight (float | None): Initial weight. If None, random value is used.
+            weight (float | None): Initial weight. If None, 0.0 is used.
             conn_type (ConnectionType): Type of connection (e.g. standard, recurrent).
         """
 
         if weight is None:
-            weight = np.random.randn() * 0.5
+            weight = 0.0
 
         conn = Connection(source, target, weight=weight, conn_type=conn_type)
         source.outgoing.append(conn)
