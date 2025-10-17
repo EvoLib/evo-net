@@ -102,7 +102,7 @@ class Nnet:
         label: str = "",
         role: NeuronRole = NeuronRole.HIDDEN,
         count: int = 1,
-        connection_init: Literal["random", "zero", "none"] = "random",
+        connection_init: Literal["random", "zero", "near_zero", "none"] = "zero",
         recurrent: Optional[set[RecurrentKind]] = None,
     ) -> list[Neuron]:
         """
@@ -116,9 +116,10 @@ class Nnet:
             role: Role of the neuron (INPUT, HIDDEN, OUTPUT).
             count: Number of neurons to add (default: 1).
             connection_init:
-                "random" – connect with random weights (feedforward + recurrent)
-                "zero"   – connect with weight 0.0 (feedforward + recurrent)
-                "none"   – do not create connections (feedforward + recurrent)
+                "random"    - connect with random weights (feedforward + recurrent)
+                "zero"      - connect with weight 0.0 (feedforward + recurrent)
+                "near_zero"  – connect with small random weights (-0.05, 0.05)
+                "none"      - do not create connections (feedforward + recurrent)
             recurrent: Optional recurrent connection types.
 
         Returns:

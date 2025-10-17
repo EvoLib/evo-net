@@ -265,7 +265,11 @@ def remove_random_connection(net: Nnet) -> None:
     conn.target.incoming.remove(conn)
 
 
-def add_random_neuron(net: Nnet, activations: list[str] | None = None) -> None:
+def add_random_neuron(
+    net: Nnet,
+    activations: list[str] | None = None,
+    connection_init: Literal["zero", "random", "near_zero", "none"] = "zero",
+) -> None:
     """
     Insert a new hidden neuron into a random layer.
 
@@ -293,7 +297,7 @@ def add_random_neuron(net: Nnet, activations: list[str] | None = None) -> None:
         layer_idx=net.layers.index(layer),
         activation=random_function_name(activations),
         role=NeuronRole.HIDDEN,
-        connection_init="random",
+        connection_init=connection_init,
     )
 
 

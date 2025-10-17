@@ -48,3 +48,21 @@ class RecurrentKind(str, Enum):
     DIRECT = "direct"  # src == dst
     LATERAL = "lateral"  # same layer, src != dst
     INDIRECT = "indirect"  # src_layer > dst_layer (back edge)
+
+
+# Neutral activation functions
+# These functions satisfy f(0) ≈ 0 and are safe for zero-weight initialization.
+NEUTRAL_ACTIVATIONS: list[str] = [
+    "tanh",
+    "relu",
+    "relu_max1",
+    "leaky_relu",
+    "elu",
+    "selu",
+    "linear",
+    "linear_max1",
+    "invert",
+    "swish",
+    "mish",
+    "softsign",
+]
