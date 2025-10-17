@@ -19,6 +19,7 @@ from evonet.connection import Connection
 from evonet.core import Nnet
 from evonet.enums import ConnectionType, NeuronRole, RecurrentKind
 from evonet.neuron import Neuron
+from evonet.utils import connection_init_value
 
 ALL_ACTIVATIONS = "all"
 
@@ -181,14 +182,7 @@ def add_random_connection(
     """
 
     # Weight initialization
-    if connection_init == "zero":
-        weight = 0.0
-    elif connection_init == "random":
-        weight = np.random.randn() * 0.5
-    elif connection_init == "near_zero":
-        weight = np.random.uniform(-0.05, 0.05)
-    else:
-        raise ValueError(f"Unknown init mode: {connection_init}")
+    weight = connection_init_value(connection_init)
 
     # normalize to set[RecurrentKind]
     kinds: set[RecurrentKind] = set()

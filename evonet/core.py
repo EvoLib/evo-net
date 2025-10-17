@@ -119,7 +119,7 @@ class Nnet:
             connection_init:
                 "random"    - connect with random weights (feedforward + recurrent)
                 "zero"      - connect with weight 0.0 (feedforward + recurrent)
-                "near_zero"  – connect with small random weights (-0.05, 0.05)
+                "near_zero" - connect with small random weights (-0.05, 0.05)
                 "none"      - do not create connections (feedforward + recurrent)
             recurrent: Optional recurrent connection types.
 
