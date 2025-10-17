@@ -20,6 +20,7 @@ from evonet.connection import Connection
 from evonet.enums import ConnectionType, NeuronRole, RecurrentKind
 from evonet.layer import Layer
 from evonet.neuron import Neuron
+from evonet.utils import connection_init_value
 
 
 class Nnet:
@@ -145,10 +146,7 @@ class Nnet:
             new_neurons.append(neuron)
 
         # Weights based on init mode
-        weight_map = {"random": None, "zero": 0.0, "none": None}
-        if connection_init not in weight_map:
-            raise ValueError(f"Invalid connection_init: {connection_init}")
-        weight = weight_map[connection_init]
+        weight = connection_init_value(connection_init)
 
         skip_connections = connection_init == "none"
 
