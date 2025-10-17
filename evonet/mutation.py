@@ -152,20 +152,43 @@ def mutate_biases(net: Nnet, probability: float = 1.0, std: float = 0.1) -> None
 def add_random_connection(
     net: Nnet,
     allowed_recurrent: Optional[Collection[RecurrentKind | str]] = None,
+    connection_init: Literal["zero", "random", "near_zero"] = "zero",
 ) -> bool:
     """
     Add a valid connection between two randomly chosen neurons.
 
     Rules:
-    - disallow connections into INPUT neurons
-    - disallow duplicate (source, target) pairs
-    - classify connection type by layer order:
-      * src_layer < dst_layer  -> STANDARD
-      * src_layer >= dst_layer -> RECURRENT
+    - Disallow connections into INPUT neurons.
+    - Disallow duplicate (source, target) pairs.
+    - Classify connection type by layer order:
+        * src_layer < dst_layer  -> STANDARD
+        * src_layer >= dst_layer -> RECURRENT
+    - Recurrent edges are filtered by `allowed_recurrent`
+      (list of 'direct' | 'lateral' | 'indirect').
 
-    Recurrent edges are filtered by allowed_recurrent
-    (list of 'direct' | 'lateral' | 'indirect').
+    Args:
+        net (Nnet): Target network to modify.
+        allowed_recurrent (Collection[RecurrentKind | str] | None):
+            Allowed recurrent connection kinds. Default: None (no recurrent edges).
+        connection_init (Literal["zero", "random", "near_zero"]):
+            Weight initialization mode for the new connection.
+            - "zero":     Weight = 0.0 (neutral; ideal with HELI)
+            - "random":   Weight ~ N(0, 0.5)
+            - "near_zero": Weight ~ U(-0.05, 0.05)
+
+    Returns:
+        bool: True if a connection was added, False otherwise.
     """
+
+    # Weight initialization
+    if connection_init == "zero":
+        weight = 0.0
+    elif connection_init == "random":
+        weight = np.random.randn() * 0.5
+    elif connection_init == "near_zero":
+        weight = np.random.uniform(-0.05, 0.05)
+    else:
+        raise ValueError(f"Unknown init mode: {connection_init}")
 
     # normalize to set[RecurrentKind]
     kinds: set[RecurrentKind] = set()
@@ -223,7 +246,7 @@ def add_random_connection(
         else ConnectionType.RECURRENT
     )
 
-    net.add_connection(src, dst, conn_type=conn_type)
+    net.add_connection(src, dst, weight=weight, conn_type=conn_type)
     return True
 
 
