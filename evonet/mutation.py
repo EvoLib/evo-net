@@ -263,6 +263,8 @@ def add_random_neuron(
     net: Nnet,
     activations: list[str] | None = None,
     connection_init: Literal["zero", "random", "near_zero", "none"] = "zero",
+    connection_scope: Literal["adjacent", "crosslayer"] = "adjacent",
+    connection_density: float = 1.0,
 ) -> None:
     """
     Insert a new hidden neuron into a random layer.
@@ -292,6 +294,8 @@ def add_random_neuron(
         activation=random_function_name(activations),
         role=NeuronRole.HIDDEN,
         connection_init=connection_init,
+        connection_scope=connection_scope,
+        connection_density=connection_density,
     )
 
 
