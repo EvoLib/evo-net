@@ -9,6 +9,7 @@ export interfaces.
 
 from __future__ import annotations
 
+import random
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -105,6 +106,8 @@ class Nnet:
         count: int = 1,
         connection_init: Literal["random", "zero", "near_zero", "none"] = "zero",
         recurrent: Optional[set[RecurrentKind]] = None,
+        connection_scope: Literal["adjacent", "crosslayer"] = "adjacent",
+        connection_density: float = 1.0,
     ) -> list[Neuron]:
         """
         Add one or more neurons to the network.
@@ -122,6 +125,13 @@ class Nnet:
                 "near_zero" - connect with small random weights (-0.05, 0.05)
                 "none"      - do not create connections (feedforward + recurrent)
             recurrent: Optional recurrent connection types.
+            connection_scope:
+                - "adjacent": only connect to directly neighboring layers (default)
+                - "crosslayer": connect to all earlier and later
+                  layers (feedforward only)
+            connection_density:
+                Fraction of possible connections that should actually be created.
+                Must be in (0, 1]. A value <1.0 randomly samples a subset.
 
         Returns:
             list[Neuron]: List of added neurons.
@@ -129,10 +139,11 @@ class Nnet:
         if layer_idx is None:
             layer_idx = len(self.layers) - 1  # Add neuron to last layer
 
-        if layer_idx < 0:
-            raise ValueError(f"Layer index must be >= 0 (got {layer_idx})")
-        if layer_idx >= len(self.layers):
+        if layer_idx < 0 or layer_idx >= len(self.layers):
             raise ValueError(f"Layer index out of bounds: {layer_idx}")
+
+        if not (0.0 < connection_density <= 1.0):
+            raise ValueError("connection_density must be in (0, 1].")
 
         target_layer = self.layers[layer_idx]
         new_neurons: list[Neuron] = []
@@ -145,29 +156,49 @@ class Nnet:
             target_layer.neurons.append(neuron)
             new_neurons.append(neuron)
 
-        # Weights based on init mode
+        # Skip connection creation if requested
+        if connection_init == "none":
+            return new_neurons
+
         weight = connection_init_value(connection_init)
+        possible_pairs: list[tuple[Neuron, Neuron]] = []
 
-        skip_connections = connection_init == "none"
+        # Connection logic
+        if connection_scope == "adjacent":
+            # Previous layer ---> new neurons
+            if layer_idx > 0:
+                for src in self.layers[layer_idx - 1].neurons:
+                    for n in new_neurons:
+                        possible_pairs.append((src, n))
+            # New neurons ---> next layer (only for hidden neurons)
+            if role == NeuronRole.HIDDEN and layer_idx < len(self.layers) - 1:
+                for dst in self.layers[layer_idx + 1].neurons:
+                    for n in new_neurons:
+                        possible_pairs.append((n, dst))
 
-        # Connect to previous layer
-        if not skip_connections and layer_idx > 0:
-            for prev_neuron in self.layers[layer_idx - 1].neurons:
-                for n in new_neurons:
-                    self.add_connection(prev_neuron, n, weight=weight)
+        elif connection_scope == "crosslayer":
+            # All earlier layers ---> new neurons
+            for i in range(0, layer_idx):
+                for src in self.layers[i].neurons:
+                    for n in new_neurons:
+                        possible_pairs.append((src, n))
+            # New neurons ---> all later layers
+            for j in range(layer_idx + 1, len(self.layers)):
+                for dst in self.layers[j].neurons:
+                    for n in new_neurons:
+                        possible_pairs.append((n, dst))
 
-        # Connect to next layer (hidden only)
-        if (
-            not skip_connections
-            and role == NeuronRole.HIDDEN
-            and layer_idx < len(self.layers) - 1
-        ):
-            for next_neuron in self.layers[layer_idx + 1].neurons:
-                for n in new_neurons:
-                    self.add_connection(n, next_neuron, weight=weight)
+        # Density control: subsample of possible pairs
+        if connection_density < 1.0 and possible_pairs:
+            k = max(1, int(len(possible_pairs) * connection_density))
+            possible_pairs = random.sample(possible_pairs, k)
+
+        # Create connections
+        for src, dst in possible_pairs:
+            self.add_connection(src, dst, weight=weight)
 
         # Recurrent connections
-        if recurrent and not skip_connections:
+        if recurrent:
             if RecurrentKind.DIRECT in recurrent:
                 for n in new_neurons:
                     if n.role != NeuronRole.HIDDEN:
