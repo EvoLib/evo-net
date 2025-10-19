@@ -161,41 +161,43 @@ class Nnet:
             return new_neurons
 
         weight = connection_init_value(connection_init)
-        possible_pairs: list[tuple[Neuron, Neuron]] = []
 
-        # Connection logic
-        if connection_scope == "adjacent":
-            # Previous layer ---> new neurons
-            if layer_idx > 0:
-                for src in self.layers[layer_idx - 1].neurons:
-                    for n in new_neurons:
-                        possible_pairs.append((src, n))
-            # New neurons ---> next layer (only for hidden neurons)
-            if role == NeuronRole.HIDDEN and layer_idx < len(self.layers) - 1:
-                for dst in self.layers[layer_idx + 1].neurons:
-                    for n in new_neurons:
-                        possible_pairs.append((n, dst))
+        # Build connections for each new neuron
+        for n in new_neurons:
 
-        elif connection_scope == "crosslayer":
-            # All earlier layers ---> new neurons
-            for i in range(0, layer_idx):
-                for src in self.layers[i].neurons:
-                    for n in new_neurons:
-                        possible_pairs.append((src, n))
-            # New neurons ---> all later layers
-            for j in range(layer_idx + 1, len(self.layers)):
-                for dst in self.layers[j].neurons:
-                    for n in new_neurons:
-                        possible_pairs.append((n, dst))
+            possible_in: list[Neuron] = []
+            possible_out: list[Neuron] = []
 
-        # Density control: subsample of possible pairs
-        if connection_density < 1.0 and possible_pairs:
-            k = max(1, int(len(possible_pairs) * connection_density))
-            possible_pairs = random.sample(possible_pairs, k)
+            # ADJACENT connections
+            if connection_scope == "adjacent":
+                if layer_idx > 0:
+                    possible_in.extend(self.layers[layer_idx - 1].neurons)
+                if role == NeuronRole.HIDDEN and layer_idx < len(self.layers) - 1:
+                    possible_out.extend(self.layers[layer_idx + 1].neurons)
 
-        # Create connections
-        for src, dst in possible_pairs:
-            self.add_connection(src, dst, weight=weight)
+            # CROSSLAYER connections
+            elif connection_scope == "crosslayer":
+                # All earlier layers ---> new neuron
+                for i in range(0, layer_idx):
+                    possible_in.extend(self.layers[i].neurons)
+                # New neuron ---> all later layers
+                for j in range(layer_idx + 1, len(self.layers)):
+                    possible_out.extend(self.layers[j].neurons)
+
+            # Density control per neuron
+            if connection_density < 1.0:
+                if possible_in:
+                    k_in = max(1, int(len(possible_in) * connection_density))
+                    possible_in = random.sample(possible_in, k_in)
+                if possible_out:
+                    k_out = max(1, int(len(possible_out) * connection_density))
+                    possible_out = random.sample(possible_out, k_out)
+
+            # Create the actual connections
+            for src in possible_in:
+                self.add_connection(src, n, weight=weight)
+            for dst in possible_out:
+                self.add_connection(n, dst, weight=weight)
 
         # Recurrent connections
         if recurrent:
