@@ -255,7 +255,7 @@ class Nnet:
         target: Neuron,
         weight: float | None = None,
         conn_type: ConnectionType = ConnectionType.STANDARD,
-    ) -> None:
+    ) -> Connection | None:
         """
         Create a directed connection between two neurons.
 
@@ -264,7 +264,13 @@ class Nnet:
             target (Neuron): Target neuron.
             weight (float | None): Initial weight. If None, 0.0 is used.
             conn_type (ConnectionType): Type of connection (e.g. standard, recurrent).
+
+        Returns:
+            Connection: Added Connection.
         """
+
+        if any(c.target == target for c in source.outgoing):
+            return None  # duplicate
 
         if weight is None:
             weight = 0.0
@@ -272,6 +278,8 @@ class Nnet:
         conn = Connection(source, target, weight=weight, conn_type=conn_type)
         source.outgoing.append(conn)
         target.incoming.append(conn)
+
+        return conn
 
     def reset(self, full: bool = False) -> None:
         """Reset all neurons (clears input, output, and caches)."""

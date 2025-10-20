@@ -154,7 +154,7 @@ def add_random_connection(
     net: Nnet,
     allowed_recurrent: Optional[Collection[RecurrentKind | str]] = None,
     connection_init: Literal["zero", "random", "near_zero"] = "zero",
-) -> bool:
+) -> Connection | None:
     """
     Add a valid connection between two randomly chosen neurons.
 
@@ -178,7 +178,7 @@ def add_random_connection(
             - "near_zero": Weight ~ U(-0.05, 0.05)
 
     Returns:
-        bool: True if a connection was added, False otherwise.
+        Connection: New connection, None otherwise.
     """
 
     # Weight initialization
@@ -192,7 +192,7 @@ def add_random_connection(
 
     all_neurons = net.get_all_neurons()
     if len(all_neurons) < 2:
-        return False
+        return None
 
     # Build a dict of existing connections
     existing: set[tuple[Neuron, Neuron]] = {
@@ -230,7 +230,7 @@ def add_random_connection(
                 candidates.append((src, dst))  # recurrent allowed by policy
 
     if not candidates:
-        return False
+        return None
 
     src, dst = random.choice(candidates)
     src_layer_idx, dst_layer_idx = layer_of[src], layer_of[dst]
@@ -240,23 +240,30 @@ def add_random_connection(
         else ConnectionType.RECURRENT
     )
 
-    net.add_connection(src, dst, weight=weight, conn_type=conn_type)
-    return True
+    conn = net.add_connection(src, dst, weight=weight, conn_type=conn_type)
+
+    return conn
 
 
-def remove_random_connection(net: Nnet) -> None:
+def remove_random_connection(net: Nnet) -> bool:
     """
     Remove a randomly selected connection from the network.
 
     Does nothing if no connections are present.
+
+    Returns:
+        bool: True if a connection was removed, False otherwise.
     """
+
     all_connections = net.get_all_connections()
     if not all_connections:
-        return
+        return False
 
     conn = random.choice(all_connections)
     conn.source.outgoing.remove(conn)
     conn.target.incoming.remove(conn)
+
+    return True
 
 
 def add_random_neuron(
@@ -265,7 +272,7 @@ def add_random_neuron(
     connection_init: Literal["zero", "random", "near_zero", "none"] = "zero",
     connection_scope: Literal["adjacent", "crosslayer"] = "adjacent",
     connection_density: float = 1.0,
-) -> None:
+) -> Neuron | None:
     """
     Insert a new hidden neuron into a random layer.
 
@@ -275,9 +282,13 @@ def add_random_neuron(
         net (Nnet): The target network.
         activations (list[str] | None): Optional list of allowed activation functions.
                                         If None, all registered activations are used.
+
+    Returns:
+        Neuron: Added neurons, or None
     """
+
     if len(net.layers) < 2:
-        return
+        return None
 
     if len(net.layers) == 2:
         net.insert_layer(1)
@@ -285,18 +296,20 @@ def add_random_neuron(
     # Choose target layer (not input, not output)
     candidate_layers = net.layers[1:-1]
     if not candidate_layers:
-        return
+        return None
 
     layer = random.choice(candidate_layers)
 
-    net.add_neuron(
+    new_neuron = net.add_neuron(
         layer_idx=net.layers.index(layer),
         activation=random_function_name(activations),
         role=NeuronRole.HIDDEN,
         connection_init=connection_init,
         connection_scope=connection_scope,
         connection_density=connection_density,
-    )
+    )[0]
+
+    return new_neuron
 
 
 def remove_random_neuron(net: Nnet) -> None:
@@ -324,7 +337,9 @@ def remove_random_neuron(net: Nnet) -> None:
             break
 
 
-def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) -> None:
+def split_connection(
+    net: Nnet, activation: str = "tanh", noise: float = 0.1
+) -> Neuron | None:
     """
     Insert a neuron in the middle of an existing connection.
 
@@ -336,10 +351,14 @@ def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) ->
         net (Nnet): The target network.
         activation (str): Activation function for the new neuron.
         noise (float): Optional noise applied to new weights.
+
+    Returns:
+        Neuron: Added neuron, or None
     """
+
     all_connections = net.get_all_connections()
     if not all_connections:
-        return
+        return None
 
     conn = random.choice(all_connections)
     src, dst = conn.source, conn.target
@@ -351,7 +370,7 @@ def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) ->
             break
 
     if insert_idx is None or insert_idx >= len(net.layers):
-        return
+        return None
 
     new_neuron = net.add_neuron(
         layer_idx=insert_idx,
@@ -367,3 +386,5 @@ def split_connection(net: Nnet, activation: str = "tanh", noise: float = 0.1) ->
     weight = 1.0 + np.random.normal(0, noise)
     net.add_connection(src, new_neuron, weight=weight)
     net.add_connection(new_neuron, dst, weight=conn.weight)
+
+    return new_neuron
