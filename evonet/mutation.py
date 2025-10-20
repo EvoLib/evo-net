@@ -312,7 +312,7 @@ def add_random_neuron(
     return new_neuron
 
 
-def remove_random_neuron(net: Nnet) -> None:
+def remove_random_neuron(net: Nnet) -> bool:
     """
     Remove a randomly selected hidden neuron from the network.
 
@@ -320,7 +320,7 @@ def remove_random_neuron(net: Nnet) -> None:
     """
     hidden_neurons = [n for n in net.get_all_neurons() if n.role == NeuronRole.HIDDEN]
     if not hidden_neurons:
-        return
+        return False
 
     neuron = random.choice(hidden_neurons)
 
@@ -335,6 +335,8 @@ def remove_random_neuron(net: Nnet) -> None:
         if neuron in layer.neurons:
             layer.neurons.remove(neuron)
             break
+
+    return True
 
 
 def split_connection(
