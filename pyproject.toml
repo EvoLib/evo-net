@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "evonet"
-version = "0.1.0.dev18"
+version = "0.1.0.dev19"
 description = "Evolvable neural network core for integration with EvoLib"
 authors = [
     { name = "EvoLib", email = "evolib@dismail.de" }
