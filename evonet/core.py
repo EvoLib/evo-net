@@ -55,6 +55,19 @@ class Nnet:
         return count
 
     @property
+    def num_hidden(self) -> int:
+        """Return the number of hidden neurons."""
+        count = 0
+        for layer in self.layers:
+            for neuron in layer.neurons:
+                if (
+                    neuron.role is not NeuronRole.INPUT
+                    and neuron.role is not NeuronRole.OUTPUT
+                ):
+                    count += 1
+        return count
+
+    @property
     def num_params(self) -> int:
         """Total parameter count = weights + biases."""
         return self.num_weights + self.num_biases
