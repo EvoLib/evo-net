@@ -121,6 +121,7 @@ class Nnet:
         recurrent: Optional[set[RecurrentKind]] = None,
         connection_scope: Literal["adjacent", "crosslayer"] = "adjacent",
         connection_density: float = 1.0,
+        max_connections: int = 2**63 - 1,
     ) -> list[Neuron]:
         """
         Add one or more neurons to the network.
@@ -129,39 +130,44 @@ class Nnet:
             layer_idx: Target layer index. Defaults to last layer.
             activation: Activation function name.
             bias: Initial bias value.
-            label: Optional label.
+            label: Optional textual label.
             role: Role of the neuron (INPUT, HIDDEN, OUTPUT).
-            count: Number of neurons to add (default: 1).
+            count: Number of neurons to add.
             connection_init:
-                "random"    - connect with random weights (feedforward + recurrent)
-                "zero"      - connect with weight 0.0 (feedforward + recurrent)
-                "near_zero" - connect with small random weights (-0.05, 0.05)
-                "none"      - do not create connections (feedforward + recurrent)
+                "random"    - connect with random weights
+                "zero"      - weight = 0.0
+                "near_zero" - small uniform weights in (-0.05, 0.05)
+                "none"      - do not create any connections
             recurrent: Optional recurrent connection types.
             connection_scope:
-                - "adjacent": only connect to directly neighboring layers (default)
-                - "crosslayer": connect to all earlier and later
-                  layers (feedforward only)
+                - "adjacent": only neighbor layers
+                - "crosslayer": connect to all earlier/later layers
             connection_density:
-                Fraction of possible connections that should actually be created.
-                Must be in (0, 1]. A value <1.0 randomly samples a subset.
+                Fraction of all possible feed-forward + recurrent connections
+                that should actually be created. Must be in [0, 1].
+            max_connections:
+                Hard limit for the number of created connections per neuron.
 
         Returns:
-            list[Neuron]: List of added neurons.
+            list[Neuron]: The created neuron objects.
         """
+
         if layer_idx is None:
             layer_idx = len(self.layers) - 1  # Add neuron to last layer
 
-        if layer_idx < 0 or layer_idx >= len(self.layers):
+        if not (0 <= layer_idx < len(self.layers)):
             raise ValueError(f"Layer index out of bounds: {layer_idx}")
 
         if not (0.0 < connection_density <= 1.0):
             raise ValueError("connection_density must be in (0, 1].")
 
+        if not (0 <= max_connections <= 2**63 - 1):
+            raise ValueError("max_connections must be >= 0 ")
+
         target_layer = self.layers[layer_idx]
         new_neurons: list[Neuron] = []
 
-        # Create neurons without connections
+        # Create neurons without any connections
         for _ in range(count):
             neuron = Neuron(activation=activation, bias=bias)
             neuron.role = role
@@ -169,96 +175,107 @@ class Nnet:
             target_layer.neurons.append(neuron)
             new_neurons.append(neuron)
 
-        # Skip connection creation if requested
+        # No connections
         if connection_init == "none":
             return new_neurons
 
         weight = connection_init_value(connection_init)
 
-        # Build connections for each new neuron
+        # Build connections for every new neuron
         for n in new_neurons:
 
-            possible_in: list[Neuron] = []
-            possible_out: list[Neuron] = []
+            # --------------------------------------------------------------
+            # FEED-FORWARD candidates
+            # --------------------------------------------------------------
+            ff_candidates: list[tuple[Neuron, Neuron, ConnectionType]] = []
 
-            # ADJACENT connections
             if connection_scope == "adjacent":
+                # previous layer -> new neuron
                 if layer_idx > 0:
-                    possible_in.extend(self.layers[layer_idx - 1].neurons)
+                    for src in self.layers[layer_idx - 1].neurons:
+                        ff_candidates.append((src, n, ConnectionType.STANDARD))
+
+                # new neuron -> next layer (only hidden neurons produce FF forward)
                 if role == NeuronRole.HIDDEN and layer_idx < len(self.layers) - 1:
-                    possible_out.extend(self.layers[layer_idx + 1].neurons)
+                    for dst in self.layers[layer_idx + 1].neurons:
+                        ff_candidates.append((n, dst, ConnectionType.STANDARD))
 
-            # CROSSLAYER connections
             elif connection_scope == "crosslayer":
-                # All earlier layers ---> new neuron
+                # all earlier layers -> new neuron
                 for i in range(0, layer_idx):
-                    possible_in.extend(self.layers[i].neurons)
-                # New neuron ---> all later layers
+                    for src in self.layers[i].neurons:
+                        ff_candidates.append((src, n, ConnectionType.STANDARD))
+
+                # new neuron -> all later layers
                 for j in range(layer_idx + 1, len(self.layers)):
-                    possible_out.extend(self.layers[j].neurons)
+                    for dst in self.layers[j].neurons:
+                        ff_candidates.append((n, dst, ConnectionType.STANDARD))
 
-            # Density control per neuron
-            if connection_density < 1.0:
-                if possible_in:
-                    k_in = max(1, int(len(possible_in) * connection_density))
-                    possible_in = random.sample(possible_in, k_in)
-                if possible_out:
-                    k_out = max(1, int(len(possible_out) * connection_density))
-                    possible_out = random.sample(possible_out, k_out)
+            # --------------------------------------------------------------
+            # RECURRENT candidates
+            # --------------------------------------------------------------
+            rec_candidates: list[tuple[Neuron, Neuron, ConnectionType]] = []
 
-            # Create the actual connections
-            for src in possible_in:
-                self.add_connection(src, n, weight=weight)
-            for dst in possible_out:
-                self.add_connection(n, dst, weight=weight)
+            if recurrent:
 
-        # Recurrent connections
-        if recurrent:
-            if RecurrentKind.DIRECT in recurrent:
-                for n in new_neurons:
-                    if n.role != NeuronRole.HIDDEN:
-                        continue  # No recurrence on INPUT or OUTPUT
-                    self.add_connection(
-                        n, n, weight=weight, conn_type=ConnectionType.RECURRENT
-                    )
+                # DIRECT: self-loop
+                if RecurrentKind.DIRECT in recurrent:
+                    if n.role == NeuronRole.HIDDEN:
+                        rec_candidates.append((n, n, ConnectionType.RECURRENT))
 
-            if RecurrentKind.LATERAL in recurrent:
-                full_layer = list(self.layers[layer_idx].neurons)
-                for src in full_layer:
-                    if src.role != NeuronRole.HIDDEN:
-                        continue  # No recurrence on INPUT or OUTPUT
-                    for dst in new_neurons:
-                        if src is not dst:
-                            self.add_connection(
-                                src,
-                                dst,
-                                weight=weight,
-                                conn_type=ConnectionType.RECURRENT,
-                            )
+                # LATERAL: same-layer recurrent edges
+                if RecurrentKind.LATERAL in recurrent:
+                    full_layer = list(self.layers[layer_idx].neurons)
+                    for src in full_layer:
+                        if src is n:
+                            continue
+                        if src.role != NeuronRole.HIDDEN:
+                            continue
+                        rec_candidates.append((src, n, ConnectionType.RECURRENT))
 
-            if RecurrentKind.INDIRECT in recurrent:
-                for src in new_neurons:
-                    if src.role != NeuronRole.HIDDEN:
-                        continue  # No recurrence on INPUT or OUTPUT
-                    for lower_layer in self.layers[1:layer_idx]:
-                        for dst in lower_layer.neurons:
-                            self.add_connection(
-                                src,
-                                dst,
-                                weight=weight,
-                                conn_type=ConnectionType.RECURRENT,
-                            )
-                for higher_layer in self.layers[layer_idx + 1 :]:
-                    for src in higher_layer.neurons:
-                        if src != NeuronRole.HIDDEN:
-                            continue  # No recurrence on INPUT or OUTPUT
-                        for dst in new_neurons:
-                            self.add_connection(
-                                src,
-                                dst,
-                                weight=weight,
-                                conn_type=ConnectionType.RECURRENT,
-                            )
+                # INDIRECT: across earlier and later layers
+                if RecurrentKind.INDIRECT in recurrent:
+
+                    # From new neuron -> lower layers
+                    for lower in self.layers[1:layer_idx]:
+                        for dst in lower.neurons:
+                            if n.role == NeuronRole.HIDDEN:
+                                rec_candidates.append(
+                                    (n, dst, ConnectionType.RECURRENT)
+                                )
+
+                    # From higher layers -> new neuron
+                    for higher in self.layers[layer_idx + 1 :]:
+                        for src in higher.neurons:
+                            if src.role == NeuronRole.HIDDEN:
+                                rec_candidates.append(
+                                    (src, n, ConnectionType.RECURRENT)
+                                )
+
+            # --------------------------------------------------------------
+            # GLOBAL CANDIDATE LIST (FF + RECURRENT)
+            # --------------------------------------------------------------
+            all_candidates = ff_candidates + rec_candidates
+
+            if not all_candidates:
+                continue
+
+            total = len(all_candidates)
+
+            # Global connection budget based on density
+            k = int(np.ceil(total * connection_density))
+            k = min(k, max_connections)
+            k = max(k, 0)
+
+            if k == 0:
+                continue
+
+            # Randomly select k connections across all types
+            selected = random.sample(all_candidates, k)
+
+            # Create the selected connections
+            for src, dst, ctype in selected:
+                self.add_connection(src, dst, weight=weight, conn_type=ctype)
 
         return new_neurons
 
