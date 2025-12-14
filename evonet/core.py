@@ -122,6 +122,7 @@ class Nnet:
         connection_scope: Literal["adjacent", "crosslayer"] = "adjacent",
         connection_density: float = 1.0,
         max_connections: int = 2**63 - 1,
+        require_io_connections: bool = True,
     ) -> list[Neuron]:
         """
         Add one or more neurons to the network.
@@ -147,6 +148,9 @@ class Nnet:
                 that should actually be created. Must be in [0, 1].
             max_connections:
                 Hard limit for the number of created connections per neuron.
+            require_io_connections:
+                If True, ensure that each newly added neuron has at least
+                one incoming and one outgoing connection (if structurally possible).
 
         Returns:
             list[Neuron]: The created neuron objects.
@@ -260,21 +264,55 @@ class Nnet:
             if not all_candidates:
                 continue
 
-            total = len(all_candidates)
+            forced: list[tuple[Neuron, Neuron, ConnectionType]] = []
 
-            # Global connection budget based on density
+            # --------------------------------------------------------------
+            # IO enforcement
+            # --------------------------------------------------------------
+
+            if require_io_connections and max_connections > 0:
+                incoming_candidates = [
+                    (src, dst, ctype) for src, dst, ctype in all_candidates if dst is n
+                ]
+
+                outgoing_candidates = [
+                    (src, dst, ctype) for src, dst, ctype in all_candidates if src is n
+                ]
+
+                # Enforce incoming if possible
+                if incoming_candidates:
+                    forced.append(random.choice(incoming_candidates))
+
+                # Enforce outgoing if possible and budget allows
+                if outgoing_candidates and len(forced) < max_connections:
+                    forced.append(random.choice(outgoing_candidates))
+
+            # --------------------------------------------------------------
+            # Remaining
+            # --------------------------------------------------------------
+
+            total = len(all_candidates)
             k = int(np.ceil(total * connection_density))
-            k = min(k, max_connections)
+            k = min(k, max_connections - len(forced))
             k = max(k, 0)
+
+            remaining_candidates = [c for c in all_candidates if c not in forced]
+
+            # Create forced connections
+            for src, dst, ctype in forced:
+                self.add_connection(src, dst, weight=weight, conn_type=ctype)
+
+            k = min(k, len(remaining_candidates))
 
             if k == 0:
                 continue
 
-            # Randomly select k connections across all types
-            selected = random.sample(all_candidates, k)
+            sampled = random.sample(remaining_candidates, k)
 
-            # Create the selected connections
-            for src, dst, ctype in selected:
+            # --------------------------------------------------------------
+            # Create connections
+            # --------------------------------------------------------------
+            for src, dst, ctype in forced + sampled:
                 self.add_connection(src, dst, weight=weight, conn_type=ctype)
 
         return new_neurons
