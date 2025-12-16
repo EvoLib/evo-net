@@ -117,6 +117,8 @@ class Nnet:
         label: str = "",
         role: NeuronRole = NeuronRole.HIDDEN,
         count: int = 1,
+        dynamics_name: str = "standard",
+        dynamics_params: dict[str, float] | None = None,
         connection_init: Literal["random", "zero", "near_zero", "none"] = "zero",
         recurrent: Optional[set[RecurrentKind]] = None,
         connection_scope: Literal["adjacent", "crosslayer"] = "adjacent",
@@ -176,6 +178,10 @@ class Nnet:
             neuron = Neuron(activation=activation, bias=bias)
             neuron.role = role
             neuron.label = label
+
+            neuron.dynamics_name = dynamics_name
+            neuron.dynamics_params = dict(dynamics_params) if dynamics_params else {}
+
             target_layer.neurons.append(neuron)
             new_neurons.append(neuron)
 
@@ -412,7 +418,7 @@ class Nnet:
             for n in layer.neurons:
                 if n.activation_name != "softmax":
                     total = n.input + n.bias
-                    n.output = n.activation(total)
+                    n.output = n.compute_output(total)
 
             # Propagate to targets (exclude recurrent edges)
             for n in layer.neurons:

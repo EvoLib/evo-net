@@ -273,6 +273,8 @@ def add_random_neuron(
     connection_scope: Literal["adjacent", "crosslayer"] = "adjacent",
     connection_density: float = 1.0,
     max_connections: int = 2**63 - 1,
+    dynamics_name: str = "standard",
+    dynamics_params: dict[str, float] = {},
 ) -> Neuron | None:
     """
     Insert a new hidden neuron into a random layer.
@@ -313,6 +315,8 @@ def add_random_neuron(
         connection_scope=connection_scope,
         connection_density=connection_density,
         max_connections=max_connections,
+        dynamics_name=dynamics_name,
+        dynamics_params=dynamics_params,
     )[0]
 
     return new_neuron

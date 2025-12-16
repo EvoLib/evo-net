@@ -55,6 +55,41 @@ class Neuron:
         self.last_output: float = 0.0
         self.label = label
 
+        # Neuron dynamics (stateful behaviour over time)
+        self.dynamics_name: str = "standard"
+        self.dynamics_params: dict[str, float] = {}
+
+    def compute_output(self, total_input: float) -> float:
+        """
+        Compute the neuron's output given the total input.
+
+        This method defines the neuron's local output dynamics and serves as the single
+        extension point for experimental neuron behaviour (e.g. leaky integration,
+        gating, oscillators).
+
+        By default, this applies the activation function directly.
+        """
+
+        # Default / standard dynamics
+        if self.dynamics_name == "standard":
+            return self.activation(total_input)
+
+        # Leaky integrator dynamics
+        if self.dynamics_name == "leaky":
+            alpha = self.dynamics_params.get("alpha", 1.0)
+
+            # Safety: keep alpha in [0, 1]
+            if alpha < 0.0:
+                alpha = 0.0
+            elif alpha > 1.0:
+                alpha = 1.0
+
+            raw = self.activation(total_input)
+            return (1.0 - alpha) * self.last_output + alpha * raw
+
+        # Fallback: unknown dynamics --> behave like standard
+        return self.activation(total_input)
+
     def reset(self, full: bool = False) -> None:
         """
         Clear current neuron state for a new forward pass.
