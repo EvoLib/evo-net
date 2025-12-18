@@ -300,6 +300,9 @@ def add_random_neuron(
     if len(net.layers) == 2:
         net.insert_layer(1)
 
+    if dynamics_params is None:
+        dynamics_params = {}
+
     # Choose target layer (not input, not output)
     candidate_layers = net.layers[1:-1]
     if not candidate_layers:

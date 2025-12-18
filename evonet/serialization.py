@@ -49,6 +49,8 @@ def to_dict(net: Nnet) -> dict[str, Any]:
                         "bias": n.bias,
                         "role": n.role.name,
                         "label": n.label,
+                        "dynamics_name": n.dynamics_name,
+                        "dynamics_params": n.dynamics_params,
                         "incoming": [
                             {
                                 "source": c.source.id,
@@ -81,6 +83,8 @@ def from_dict(data: dict[str, Any]) -> Nnet:
                 bias=n_info["bias"],
                 role=NeuronRole[n_info["role"]],
                 label=n_info.get("label", ""),
+                dynamics_name=n_info.get("dynamics_name", "standard"),
+                dynamics_params=n_info.get("dynamics_params", {}),
                 connection_init="none",
             )[0]
             n.id = n_info["id"]
