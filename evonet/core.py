@@ -318,7 +318,7 @@ class Nnet:
             # --------------------------------------------------------------
             # Create connections
             # --------------------------------------------------------------
-            for src, dst, ctype in forced + sampled:
+            for src, dst, ctype in sampled:
                 self.add_connection(src, dst, weight=weight, conn_type=ctype)
 
         return new_neurons
@@ -329,6 +329,7 @@ class Nnet:
         target: Neuron,
         weight: float | None = None,
         conn_type: ConnectionType = ConnectionType.STANDARD,
+        delay: int = 0,
     ) -> Connection | None:
         """
         Create a directed connection between two neurons.
@@ -338,6 +339,7 @@ class Nnet:
             target (Neuron): Target neuron.
             weight (float | None): Initial weight. If None, 0.0 is used.
             conn_type (ConnectionType): Type of connection (e.g. standard, recurrent).
+            delay (int): Delay in discrete time steps.
 
         Returns:
             Connection: Added Connection.
@@ -349,7 +351,9 @@ class Nnet:
         if weight is None:
             weight = 0.0
 
-        conn = Connection(source, target, weight=weight, conn_type=conn_type)
+        conn = Connection(
+            source, target, weight=weight, conn_type=conn_type, delay=delay
+        )
         source.outgoing.append(conn)
         target.incoming.append(conn)
 
@@ -360,6 +364,11 @@ class Nnet:
         for layer in self.layers:
             for neuron in layer.neurons:
                 neuron.reset(full=full)
+
+        if full:
+            # Clear delayed history buffers on connections.
+            for conn in self.get_all_connections():
+                conn.reset_buffer()
 
     def calc(self, input_values: list[float]) -> list[float]:
         """
@@ -393,7 +402,12 @@ class Nnet:
             for n in layer.neurons:
                 for c in n.incoming:
                     if c.type is ConnectionType.RECURRENT:
-                        c.target.input += c.weight * c.source.last_output
+                        if c.delay > 0:
+                            # Use delayed history if configured
+                            n.input += c.weight * c.delayed_source_output()
+                        else:
+                            # default: 1-step recurrence via last_output
+                            n.input += c.weight * c.source.last_output
 
         # Feed-forward by layers: activate first, then propagate non-recurrent edges
         for layer in self.layers:
@@ -425,6 +439,11 @@ class Nnet:
                 for c in n.outgoing:
                     if c.type is not ConnectionType.RECURRENT:
                         c.target.input += c.weight * n.output
+
+        # Update recurrent delay buffers once per time step.
+        for c in self.get_all_connections():
+            if c.type is ConnectionType.RECURRENT and c.delay > 0:
+                c.push_source_output(c.source.output)
 
         return [n.output for n in self.layers[-1].neurons]
 

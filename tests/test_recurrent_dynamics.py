@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from evonet.core import Nnet
 from evonet.enums import ConnectionType, NeuronRole
@@ -104,3 +105,79 @@ def test_recurrent_back_edge_output_to_hidden_linear() -> None:
         actual_outputs.append(y)
 
     assert np.allclose(actual_outputs, expected_outputs, atol=1e-12)
+
+
+def test_recurrent_delay_two_steps_linear_chain() -> None:
+    """
+    A minimal sequence test for recurrent delay buffers.
+
+    Network:
+        input -> hidden -> output
+        hidden has a recurrent self-loop with delay=2
+
+    Expected behaviour (linear activations, weights=1):
+        t0 input=1 -> hidden=1, output=1
+        t1 input=0 -> hidden=0, output=0   (delay=2 not yet filled)
+        t2 input=0 -> hidden=1, output=1   (uses hidden output from t0)
+    """
+    net = Nnet()
+    net.add_layer()  # 0 input
+    net.add_layer()  # 1 hidden
+    net.add_layer()  # 2 output
+
+    n_in = net.add_neuron(
+        layer_idx=0, activation="linear", role=NeuronRole.INPUT, connection_init="none"
+    )[0]
+    n_h = net.add_neuron(
+        layer_idx=1, activation="linear", role=NeuronRole.HIDDEN, connection_init="none"
+    )[0]
+    n_out = net.add_neuron(
+        layer_idx=2, activation="linear", role=NeuronRole.OUTPUT, connection_init="none"
+    )[0]
+
+    net.add_connection(n_in, n_h, weight=1.0, conn_type=ConnectionType.STANDARD)
+    net.add_connection(n_h, n_out, weight=1.0, conn_type=ConnectionType.STANDARD)
+
+    # Recurrent self-loop with delay=2
+    net.add_connection(
+        n_h, n_h, weight=1.0, conn_type=ConnectionType.RECURRENT, delay=2
+    )
+
+    y0 = net.calc([1.0])[0]
+    y1 = net.calc([0.0])[0]
+    y2 = net.calc([0.0])[0]
+
+    assert y0 == pytest.approx(1.0)
+    assert y1 == pytest.approx(0.0)
+    assert y2 == pytest.approx(1.0)
+
+
+def test_reset_full_clears_delay_history() -> None:
+    """Full reset must clear delay buffers, otherwise episodes leak memory."""
+    net = Nnet()
+    net.add_layer()
+    net.add_layer()
+    net.add_layer()
+
+    n_in = net.add_neuron(
+        layer_idx=0, activation="linear", role=NeuronRole.INPUT, connection_init="none"
+    )[0]
+    n_h = net.add_neuron(
+        layer_idx=1, activation="linear", role=NeuronRole.HIDDEN, connection_init="none"
+    )[0]
+    n_out = net.add_neuron(
+        layer_idx=2, activation="linear", role=NeuronRole.OUTPUT, connection_init="none"
+    )[0]
+
+    net.add_connection(n_in, n_h, weight=1.0, conn_type=ConnectionType.STANDARD)
+    net.add_connection(n_h, n_out, weight=1.0, conn_type=ConnectionType.STANDARD)
+    net.add_connection(
+        n_h, n_h, weight=1.0, conn_type=ConnectionType.RECURRENT, delay=2
+    )
+
+    _ = net.calc([1.0])[0]  # fills history partially
+    net.reset(full=True)
+
+    # After full reset, history is gone -> delay contribution must be 0.0
+    y = net.calc([0.0])[0]
+    assert y == pytest.approx(0.0)

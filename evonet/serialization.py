@@ -57,6 +57,7 @@ def to_dict(net: Nnet) -> dict[str, Any]:
                                 "target": c.target.id,
                                 "weight": c.weight,
                                 "type": c.type.name,  # store enum as string
+                                "delay": c.delay,
                             }
                             for c in n.incoming
                         ],
@@ -96,11 +97,15 @@ def from_dict(data: dict[str, Any]) -> Nnet:
             for c_info in n_info["incoming"]:
                 src = neuron_map[c_info["source"]]
                 dst = neuron_map[c_info["target"]]
+                delay = int(c_info.get("delay", 0))
+                conn_type = ConnectionType[c_info["type"]]
+
                 net.add_connection(
                     src,
                     dst,
                     weight=c_info["weight"],
-                    conn_type=ConnectionType[c_info["type"]],
+                    conn_type=conn_type,
+                    delay=delay,
                 )
 
     return net
