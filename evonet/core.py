@@ -351,6 +351,12 @@ class Nnet:
         if weight is None:
             weight = 0.0
 
+        # Normalize recurrent delays
+        if conn_type is ConnectionType.RECURRENT and delay <= 0:
+            delay = 1
+        if conn_type is not ConnectionType.RECURRENT and delay < 0:
+            delay = 0
+
         conn = Connection(
             source, target, weight=weight, conn_type=conn_type, delay=delay
         )
@@ -402,12 +408,7 @@ class Nnet:
             for n in layer.neurons:
                 for c in n.incoming:
                     if c.type is ConnectionType.RECURRENT:
-                        if c.delay > 0:
-                            # Use delayed history if configured
-                            n.input += c.weight * c.delayed_source_output()
-                        else:
-                            # default: 1-step recurrence via last_output
-                            n.input += c.weight * c.source.last_output
+                        n.input += c.weight * c.delayed_source_output()
 
         # Feed-forward by layers: activate first, then propagate non-recurrent edges
         for layer in self.layers:
@@ -442,7 +443,7 @@ class Nnet:
 
         # Update recurrent delay buffers once per time step.
         for c in self.get_all_connections():
-            if c.type is ConnectionType.RECURRENT and c.delay > 0:
+            if c.type is ConnectionType.RECURRENT:
                 c.push_source_output(c.source.output)
 
         return [n.output for n in self.layers[-1].neurons]

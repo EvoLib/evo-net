@@ -38,18 +38,30 @@ class Connection:
         conn_type: ConnectionType = ConnectionType.STANDARD,
     ) -> None:
 
+        if delay < 0:
+            raise ValueError("delay must be >= 0")
+
+        # Normalize: recurrent implies delay >= 1
+        if conn_type is ConnectionType.RECURRENT and delay == 0:
+            delay = 1
+
         self.source = source
         self.target = target
         self.weight = weight
         self.delay = delay
-        self.type: ConnectionType = conn_type
+        self.type = conn_type
 
         self._history: Optional[Deque[float]] = None
-        if self.delay > 0:
+        if self.type is ConnectionType.RECURRENT:
             self._history = deque(maxlen=self.delay)
 
-        if self.delay < 0:
-            raise ValueError("delay must be >= 0")
+    def set_delay(self, delay: int) -> None:
+        if self.type is not ConnectionType.RECURRENT:
+            raise ValueError("set_delay is only valid for recurrent connections")
+        if delay <= 0:
+            delay = 1
+        self.delay = int(delay)
+        self._history = deque(maxlen=self.delay)
 
     def push_source_output(self, value: float) -> None:
         """

@@ -181,3 +181,12 @@ def test_reset_full_clears_delay_history() -> None:
     # After full reset, history is gone -> delay contribution must be 0.0
     y = net.calc([0.0])[0]
     assert y == pytest.approx(0.0)
+
+
+def test_recurrent_delay_zero_normalizes_to_one() -> None:
+    net, n_in, n_hid, _ = _mk_linear_ih_h_o()
+    c = net.add_connection(
+        n_hid, n_hid, weight=1.0, conn_type=ConnectionType.RECURRENT, delay=0
+    )
+    assert c is not None
+    assert c.delay == 1
