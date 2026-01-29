@@ -354,7 +354,7 @@ class Nnet:
         # Normalize recurrent delays
         if conn_type is ConnectionType.RECURRENT and delay <= 0:
             delay = 1
-        if conn_type is not ConnectionType.RECURRENT and delay < 0:
+        if conn_type is not ConnectionType.RECURRENT:
             delay = 0
 
         conn = Connection(
@@ -403,7 +403,7 @@ class Nnet:
         for i, n in enumerate(input_layer.neurons):
             n.input = float(input_values[i])
 
-        # Preload recurrent contributions from previous time step (last_output)
+        # Preload recurrent contributions from delay buffers.
         for layer in self.layers:
             for n in layer.neurons:
                 for c in n.incoming:
