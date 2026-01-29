@@ -7,7 +7,6 @@ Supports optional connection types for specialized behaviors (e.g. inhibitory,
 recurrent).
 """
 
-
 from collections import deque
 from typing import TYPE_CHECKING, Deque, Optional
 
@@ -40,6 +39,9 @@ class Connection:
 
         if delay < 0:
             raise ValueError("delay must be >= 0")
+
+        if conn_type is not ConnectionType.RECURRENT:
+            delay = 0
 
         # Normalize: recurrent implies delay >= 1
         if conn_type is ConnectionType.RECURRENT and delay == 0:
