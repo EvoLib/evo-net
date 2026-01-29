@@ -479,6 +479,7 @@ class Nnet:
         colors_on: bool = True,
         thickness_on: bool = False,
         fillcolors_on: bool = False,
+        delay_on: bool = True,
     ) -> None:
         """
         Render a visual representation of the network using Graphviz.
@@ -490,6 +491,7 @@ class Nnet:
             colors_on (bool): Whether to color edges by sign.
             thickness_on (bool): Whether to scale edge thickness by weight.
             fillcolors_on (bool): Whether to color neurons by role.
+            delay_on (bool): Whether to show delay values on recurrent connections.
         """
 
         if not self.layers:
@@ -542,14 +544,24 @@ class Nnet:
         # Add edges
         for conn in self.get_all_connections():
             label = f"{conn.weight:.2f}" if labels_on else ""
+
+            # Optional delay annotation (only meaningful for recurrent connections)
+            if delay_on and labels_on and conn.type.name == "RECURRENT":
+                if label:
+                    label = f"{label}\\nd={conn.delay}"
+                else:
+                    label = f"d={conn.delay}"
+
             color = (
                 "green"
                 if colors_on and conn.weight >= 0
                 else "red" if colors_on else "black"
             )
+
             penwidth = (
                 str(max(1, min(5, abs(conn.weight * 5)))) if thickness_on else "1"
             )
+
             style = "dashed" if conn.type.name == "RECURRENT" else "solid"
 
             dot.edge(
