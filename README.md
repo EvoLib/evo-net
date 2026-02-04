@@ -2,7 +2,7 @@
 
 [![Code Quality & Tests](https://github.com/EvoLib/evo-net/actions/workflows/ci.yml/badge.svg)](https://github.com/EvoLib/evo-net/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Project Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/EvoLib/evo-net)
+[![Project Status: Beta](https://img.shields.io/badge/status-beta-blue.svg)](https://github.com/EvoLib/evo-net)
 
 **EvoNet** is a modular and evolvable neural network core designed for integration
 with [EvoLib](https://github.com/EvoLib/evo-lib).  
