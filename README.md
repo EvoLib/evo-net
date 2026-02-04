@@ -45,7 +45,7 @@ production-grade neural-network engine.
 
 ---
 
-> ⚠️ **Project status: Alpha**  
+> ⚠️ **Project status: Beta**  
 > Interfaces, APIs, and internal structure may change as the project evolves.
 
 ---
