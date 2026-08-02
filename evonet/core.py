@@ -379,26 +379,36 @@ class Nnet:
         Perform a forward pass through the network.
 
         Args:
-            input_values (list[float]): Input vector (must match input layer size).
+            input_values: Input vector matching the input layer size.
 
         Returns:
-            list[float]: Output values from the last layer.
+            Output values from the last layer.
 
         Raises:
-            AssertionError: If input size does not match input layer.
+            RuntimeError: If the network contains no layers.
+            ValueError: If the number of input values does not match the input layer.
         """
-        # Save LAST OUTPUT
+        if not self.layers:
+            raise RuntimeError("Cannot calculate an empty network.")
+
+        input_layer = self.layers[0]
+        expected_inputs = len(input_layer.neurons)
+        actual_inputs = len(input_values)
+
+        if actual_inputs != expected_inputs:
+            raise ValueError(
+                f"Expected {expected_inputs} input values, got {actual_inputs}."
+            )
+
+        # Save outputs from the previous time step.
         for layer in self.layers:
             for neuron in layer.neurons:
                 neuron.last_output = neuron.output
 
         self.reset()
 
-        # Set inputs
-        input_layer = self.layers[0]
-        assert len(input_layer.neurons) == len(input_values)
-        for i, n in enumerate(input_layer.neurons):
-            n.input = float(input_values[i])
+        for neuron, value in zip(input_layer.neurons, input_values):
+            neuron.input = float(value)
 
         # Preload recurrent contributions from delay buffers.
         for layer in self.layers:
