@@ -111,7 +111,11 @@ def null(_: Scalar = 0) -> float:
 
 
 def swish(x: Scalar) -> float:
-    """Swish activation: x * sigmoid(x). Smooth and non-monotonic."""
+    """
+    Swish activation: x * sigmoid(x).
+
+    Smooth and non-monotonic.
+    """
     return float(x) * sigmoid(x)
 
 
@@ -169,7 +173,6 @@ def random_function_name(activations: list[str] | None = None) -> str:
     Returns:
         str: Randomly selected activation function name.
     """
-
     if activations is None:
         activations = list(ACTIVATIONS.keys())
 

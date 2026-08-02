@@ -125,7 +125,6 @@ def mutate_weights(net: Nnet, probability: float = 1.0, std: float = 0.1) -> Non
         probability (float): Probability to mutate each connection.
         std (float): Standard deviation of the noise.
     """
-
     for conn in net.get_all_connections():
         if np.random.rand() < probability:
             mutate_weight(conn, std)
@@ -254,7 +253,6 @@ def remove_random_connection(net: Nnet) -> bool:
     Returns:
         bool: True if a connection was removed, False otherwise.
     """
-
     all_connections = net.get_all_connections()
     if not all_connections:
         return False
@@ -293,7 +291,6 @@ def add_random_neuron(
     Returns:
         Neuron: Added neurons, or None
     """
-
     if len(net.layers) < 2:
         return None
 

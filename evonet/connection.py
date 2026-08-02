@@ -106,7 +106,6 @@ class Connection:
         Returns:
             float: source.output × weight
         """
-
         return self.source.output * self.weight
 
     def __repr__(self) -> str:
@@ -116,7 +115,6 @@ class Connection:
         Example:
             <Conn abc123 -> def456 w=0.85 d=3 type=standard>
         """
-
         type_str = self.type.name.lower()
         return (
             f"<Conn {self.source.id[:6]} "

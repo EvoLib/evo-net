@@ -69,7 +69,6 @@ class Neuron:
 
         By default, this applies the activation function directly.
         """
-
         # Default / standard dynamics
         if self.dynamics_name == "standard":
             return self.activation(total_input)
@@ -104,7 +103,6 @@ class Neuron:
         Use `full=True` if the neuron should forget its prior state
         (e.g. after fitness evaluation).
         """
-
         self.output = 0.0
         self.input = 0.0
         if full:
@@ -117,7 +115,6 @@ class Neuron:
         Example:
             Neuron id=ab12cd act=tanh role=HIDDEN bias=0.00 input=0.12345 output=0.67890
         """
-
         return (
             f"Neuron id={self.id[:6]} "
             f"act={self.activation_name} "

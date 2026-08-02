@@ -58,8 +58,7 @@ EvoNet is a conceptual and experimental model, not a production-grade neural-net
 ## Quick Example
 
 ```python
-from evonet.core import Nnet
-from evonet.enums import NeuronRole
+from evonet import Nnet, NeuronRole
 
 net = Nnet()
 net.add_layer()  # Input layer
@@ -68,8 +67,7 @@ net.add_layer()  # Output layer
 net.add_neuron(layer_idx=0, role=NeuronRole.INPUT, activation="linear", connection_init="none", label="in")
 net.add_neuron(layer_idx=1, role=NeuronRole.OUTPUT, activation="linear", bias=0.5, label="out")
 
-y = net.calc([1.0])
-print(y)
+result = net.calc([1.0])
 ```
 
 ---

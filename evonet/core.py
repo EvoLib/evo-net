@@ -85,7 +85,6 @@ class Nnet:
         Raises:
             ValueError: If count is not positive.
         """
-
         if count <= 0:
             raise ValueError("Number of layers must be greater then zero")
 
@@ -344,7 +343,6 @@ class Nnet:
         Returns:
             Connection: Added Connection.
         """
-
         if any(c.target == target for c in source.outgoing):
             return None  # duplicate
 
@@ -389,7 +387,6 @@ class Nnet:
         Raises:
             AssertionError: If input size does not match input layer.
         """
-
         # Save LAST OUTPUT
         for layer in self.layers:
             for neuron in layer.neurons:
@@ -493,7 +490,6 @@ class Nnet:
             fillcolors_on (bool): Whether to color neurons by role.
             delay_on (bool): Whether to show delay values on recurrent connections.
         """
-
         if not self.layers:
             print("No layers to visualize.")
             return
@@ -665,7 +661,6 @@ class Nnet:
         Order:
             (layer_index, neuron_index) over all non-input neurons.
         """
-
         if not self.layers:
             return np.empty(0, dtype=float)
 
@@ -715,7 +710,6 @@ class Nnet:
         Args:
             path (str): Output file path.
         """
-
         from . import serialization  # local import to avoid circular import
 
         suffix = Path(path).suffix.lower()
@@ -743,7 +737,6 @@ class Nnet:
         Returns:
             Nnet: The reconstructed network.
         """
-
         from . import serialization  # local import to avoid circular import
 
         suffix = Path(path).suffix.lower()
