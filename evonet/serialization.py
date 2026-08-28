@@ -23,6 +23,9 @@ import yaml
 from evonet.core import Neuron, Nnet
 from evonet.enums import ConnectionType, NeuronRole
 
+FORMAT_NAME = "evonet"
+FORMAT_VERSION = 1
+
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
@@ -39,6 +42,8 @@ def to_dict(net: Nnet) -> dict[str, Any]:
         dict[str, Any]: A nested dictionary representation.
     """
     return {
+        "format": FORMAT_NAME,
+        "format_version": FORMAT_VERSION,
         "layers": [
             {
                 "index": i,
@@ -66,12 +71,41 @@ def to_dict(net: Nnet) -> dict[str, Any]:
                 ],
             }
             for i, layer in enumerate(net.layers)
-        ]
+        ],
     }
+
+
+def _validate_format(data: dict[str, Any]) -> None:
+    """
+    Validate serialization metadata while accepting legacy files.
+
+    Legacy files without format metadata remain supported.
+    """
+    format_name = data.get("format")
+    format_version = data.get("format_version")
+
+    if format_name is None and format_version is None:
+        return
+
+    if format_name is None or format_version is None:
+        raise ValueError(
+            "Serialized network must define both 'format' and 'format_version'."
+        )
+
+    if format_name != FORMAT_NAME:
+        raise ValueError(f"Unsupported serialization format: {format_name!r}.")
+
+    if format_version != FORMAT_VERSION:
+        raise ValueError(
+            f"Unsupported EvoNet format version: {format_version!r}. "
+            f"Supported version: {FORMAT_VERSION}."
+        )
 
 
 def from_dict(data: dict[str, Any]) -> Nnet:
     """Reconstruct a network from a dictionary created by `to_dict`."""
+    _validate_format(data)
+
     net = Nnet()
     neuron_map: dict[str, Neuron] = {}
 
