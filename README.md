@@ -2,7 +2,7 @@
 
 [![Code Quality & Tests](https://github.com/EvoLib/evo-net/actions/workflows/ci.yml/badge.svg)](https://github.com/EvoLib/evo-net/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Project Status: Beta](https://img.shields.io/badge/status-beta-blue.svg)](https://github.com/EvoLib/evo-net)
+[![Project Status: Stable](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/EvoLib/evo-net)
 
 **EvoNet** is a modular and evolvable neural network core designed for integration
 with [EvoLib](https://github.com/EvoLib/evo-lib).  
@@ -22,8 +22,6 @@ and highly optimised tensor operations are outside the scope of this project.
 Instead, EvoNet supports evolutionary algorithms, structural mutation, and
 exploratory research, with a focus on transparent and explicit implementations rather
 than performance optimisation or feature completeness.
-
-EvoNet is a conceptual and experimental model, not a production-grade neural-network engine.
 
 ---
 
@@ -51,7 +49,7 @@ EvoNet is a conceptual and experimental model, not a production-grade neural-net
 - Deterministic weight & bias vectorization (`get_weights`, `set_weights`)
 - YAML / JSON serialization of full topology and parameters
 - Graphviz-based network visualization
-- Pure Python + NumPy, no hard runtime dependencies
+- Lightweight Python implementation with small runtime dependency
 
 ---
 
@@ -75,7 +73,7 @@ result = net.calc([1.0])
 ## Recurrent Connections & Delay
 
 ```python
-from evonet.enums import ConnectionType
+from evonet import ConnectionType
 
 net.add_connection(
     src,
@@ -136,7 +134,7 @@ EvoLib.
 
 ## Serialization
 
-Full topology and state can be saved and restored:
+Network topology, parameters, and configuration can be saved and restored:
 
 ```python
 net.save("network.yaml")
@@ -160,11 +158,6 @@ layers, neurons, activations, biases, dynamics, connections, types, and delays.
 
 EvoNet is intentionally usable as a standalone library.
 Evolutionary control, fitness evaluation, and mutation scheduling are provided by EvoLib.
-
----
-
-> **Project status: Beta**  
-> Interfaces, APIs, and internal structure may change as the project evolves.
 
 ---
 
