@@ -1,0 +1,18 @@
+# Simple feed-forward network: 2 inputs -> 3 hidden neurons -> 1 output.
+dim: [2, 3, 1]
+activation: [linear, tanh, tanh]
+initializer: default
+
+connectivity:
+  recurrent: none
+  scope: adjacent
+  density: 1.0
+
+weights:
+  initializer: normal
+  std: 0.5
+  bounds: [-1.0, 1.0]
+
+bias:
+  initializer: zero
+  bounds: [-0.5, 0.5]
