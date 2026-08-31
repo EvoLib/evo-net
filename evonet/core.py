@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import random
 from pathlib import Path
-from typing import Literal, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
 import graphviz
 import numpy as np
@@ -22,6 +22,9 @@ from evonet.enums import ConnectionType, NeuronRole, RecurrentKind
 from evonet.layer import Layer
 from evonet.neuron import Neuron
 from evonet.utils import connection_init_value
+
+if TYPE_CHECKING:
+    from evonet.config import EvoNetConfig
 
 
 class Nnet:
@@ -34,6 +37,15 @@ class Nnet:
 
     def __init__(self) -> None:
         self.layers: list[Layer] = []
+
+    @classmethod
+    def from_config(cls, config: "EvoNetConfig") -> "Nnet":
+        """Create and initialize a network from a validated EvoNet config."""
+        from evonet.initialization import initialize_nnet
+
+        net = cls()
+        initialize_nnet(net, config)
+        return net
 
     @property
     def num_weights(self) -> int:
